@@ -1,0 +1,10 @@
+{
+  "name": "datetime_global",
+  "version": "0.0.1",
+  "description": "my Datetime untility, it mixes the Advanced capabilities of Temporal polyfill with the simplicity of Date",
+  "author": "binary-ant",
+  "type": "module",
+  "dependencies": {
+    "@js-temporal/polyfill": "^0.4.4"
+  }
+}
