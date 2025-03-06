@@ -3,7 +3,7 @@
 import {Datetime_local} from "./Datetime_local.js";
 import {Temporal} from '@js-temporal/polyfill';
 
-export type Datetime_global = {
+export type Datetime_global = Datetime_local & {
     time: Temporal.ZonedDateTime,
     toString(this: Datetime_global): string,
     getTime(this: Datetime_global): number,
@@ -13,20 +13,15 @@ export type Datetime_global = {
 };
 
 interface Datetime_global_constructor {
-    new(from: Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local,
-        timezoneId: Temporal.TimeZoneLike): Datetime_global,
+    new(from: Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local | bigint | number,
+        timezoneId?: Temporal.TimeZoneLike): Datetime_global,
 
-    (from: Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local,
-     timezoneId: Temporal.TimeZoneLike): string,
+    (from: Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local | bigint | number,
+     timezoneId?: Temporal.TimeZoneLike): string,
 
     parse(dateString: string, this_parserOnly: boolean): number,
 
     parseISODate(dateString: string): RegExpMatchArray | null,
-
-    daynames: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-    monthnames: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-    daynamesFull: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-    monthnamesFull: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
 
     padding(strx: string | any, number?: number): string,
 
@@ -57,15 +52,11 @@ export const Datetime_global: Datetime_global_constructor = function (
         return Datetime_global.prototype.toString.call({time});
     }
 } as Datetime_global_constructor;
-
 /**
- * return this the same format as `Date.prototype.toString` with the difference being that `GMT` is replaced with `UTC`.
- * thats literally all it does
- * @returns {string} this the same format as `Date.prototype.toString` with the difference being that `GMT` is replaced with `UTC`
+ * throws an Error when used
  */
 Datetime_global.prototype.toString = function (this: Datetime_global): string {
-    const date: Date = new Date(this.time.epochMilliseconds);
-    return date.toString().replace(/GMT/, 'UTC');
+    throw new Error('toString is currently in progress');
 };
 /**
  * The Datetime_local.now() static method returns the number of milliseconds elapsed since the epoch, which is defined as the midnight at the beginning of January 1, 1970, UTC
@@ -250,4 +241,14 @@ Datetime_global.prototype.getUTCMilliseconds = function (this: Datetime_global):
  */
 Datetime_global.prototype.getTimezoneOffset = function (this: Datetime_global): number {
     return -Math.round((this.time.offsetNanoseconds / 1e9) / 60);
+};
+Datetime_global.prototype.toDatetime_local = function () {
+    return new Datetime_local(this.time.epochMilliseconds);
+};
+/**
+ * a proxy for `Date.prototype.toISOString`
+ * @returns {number}
+ */
+Datetime_global.prototype.toISOString = function (): string {
+    return (new Date(this.time.epochMilliseconds)).toISOString();
 };

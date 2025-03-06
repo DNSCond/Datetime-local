@@ -1,5 +1,7 @@
 "use strict";
 
+import {Datetime_global} from "./Datetime_global.js";
+
 export type Datetime_local = {
     date: Date;
 
@@ -508,6 +510,10 @@ Datetime_local.prototype.toHTMLDatetime_local = function (this: Datetime_local |
         return "Invalid Date";
     }
 };
+Datetime_local.prototype.toHTML = function (this: Datetime_local): string {
+    const date: Date = new Date(this.date);
+    return `<time datetime="${date.toISOString()}">${date}</time>`.replace(/GMT/, 'UTC');
+};
 // builtin-proxy
 /**
  * a proxy for `Date.prototype.getDay`
@@ -899,12 +905,6 @@ Datetime_local.prototype.addInterval = function (
 };
 Datetime_local.padding = function (strx: string | any, number: number = 2): string {
     return String(strx).padStart(Number(number), '0');
-};
-/**
- * a proxy for `Date.prototype.setUTCSeconds`
- */
-Datetime_local.prototype.toISOString = function (): string {
-    return this.date.toISOString();
 };
 /**
  * format a UTC offset from a `Date.prototype.getTimezoneOffset` call

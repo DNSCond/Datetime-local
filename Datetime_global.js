@@ -22,13 +22,10 @@ export const Datetime_global = function (from, timezoneId = Temporal.Now.timeZon
     }
 };
 /**
- * return this the same format as `Date.prototype.toString` with the difference being that `GMT` is replaced with `UTC`.
- * thats literally all it does
- * @returns {string} this the same format as `Date.prototype.toString` with the difference being that `GMT` is replaced with `UTC`
+ * throws an Error when used
  */
 Datetime_global.prototype.toString = function () {
-    const date = new Date(this.time.epochMilliseconds);
-    return date.toString().replace(/GMT/, 'UTC');
+    throw new Error('toString is currently in progress');
 };
 /**
  * The Datetime_local.now() static method returns the number of milliseconds elapsed since the epoch, which is defined as the midnight at the beginning of January 1, 1970, UTC
@@ -211,4 +208,14 @@ Datetime_global.prototype.getUTCMilliseconds = function () {
  */
 Datetime_global.prototype.getTimezoneOffset = function () {
     return -Math.round((this.time.offsetNanoseconds / 1e9) / 60);
+};
+Datetime_global.prototype.toDatetime_local = function () {
+    return new Datetime_local(this.time.epochMilliseconds);
+};
+/**
+ * a proxy for `Date.prototype.toISOString`
+ * @returns {number}
+ */
+Datetime_global.prototype.toISOString = function () {
+    return (new Date(this.time.epochMilliseconds)).toISOString();
 };

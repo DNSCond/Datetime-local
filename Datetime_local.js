@@ -324,6 +324,10 @@ Datetime_local.prototype.toHTMLDatetime_local = function () {
         return "Invalid Date";
     }
 };
+Datetime_local.prototype.toHTML = function () {
+    const date = new Date(this.date);
+    return `<time datetime="${date.toISOString()}">${date}</time>`.replace(/GMT/, 'UTC');
+};
 // builtin-proxy
 /**
  * a proxy for `Date.prototype.getDay`
@@ -718,12 +722,6 @@ Datetime_local.prototype.addInterval = function (hours = null, minutes = null, s
 };
 Datetime_local.padding = function (strx, number = 2) {
     return String(strx).padStart(Number(number), '0');
-};
-/**
- * a proxy for `Date.prototype.setUTCSeconds`
- */
-Datetime_local.prototype.toISOString = function () {
-    return this.date.toISOString();
 };
 /**
  * format a UTC offset from a `Date.prototype.getTimezoneOffset` call
