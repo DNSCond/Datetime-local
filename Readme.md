@@ -11,6 +11,13 @@ there are 2 classes in this package. `Datetime_local` and `Datetime_global`
 npm install datetime_global
 ```
 
+## why use this over Temporal?
+
+uhh, DONT. this package is just me trying to have the simpler interface leveraging the advanced capabilities of
+Temporal.
+
+if you want `Date` but with timezone support then sure. use this library. but if you want Temporal then just navigate Temporal
+
 ## `Datetime_local` construction
 
 to create a `Datetime_local` use `Datetime_local()` or `new Datetime_local()` whichever way you prefer. when taking a
@@ -74,17 +81,18 @@ call their matching counterparts of `Date` but in `Datetime_global` they return 
 timezone.
 
 also each `get*` has a `getUTC*` method, and again in `Datetime_local` they simply
-call their matching counterparts of `Date` but in `Datetime_global` they construct a `Date` from `epochMilliseconds` and then call the matching method. for example
+call their matching counterparts of `Date` but in `Datetime_global` they construct a `Date` from `epochMilliseconds` and
+then call the matching method. for example
 
 ```ts
 // in Datetime_local, i said they simply call their matching counterparts of `Date` 
 Datetime_local.prototype.getUTCSeconds = function (): number {
-  return this.date.getUTCSeconds();
+    return this.date.getUTCSeconds();
 };
 // however in Datetime_global they construct a `Date` from `epochMilliseconds` and then call the matching method. for example
 Datetime_global.prototype.getUTCSeconds = function (this: Datetime_global): number {
-  const date: Date = new Date(this.time.epochMilliseconds);
-  return date.getUTCSeconds();
+    const date: Date = new Date(this.time.epochMilliseconds);
+    return date.getUTCSeconds();
 };
 ```
 

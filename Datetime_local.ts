@@ -1,7 +1,5 @@
 "use strict";
 
-import {Datetime_global} from "./Datetime_global.js";
-
 export type Datetime_local = {
     date: Date;
 

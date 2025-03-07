@@ -13,8 +13,8 @@ class RelativeTimeChecker {
     }
     run(format) {
         const temporaryTime = new Date(this.element.dateTime), currentDate = +(new Date());
-        const difference = currentDate - (+temporaryTime), differenceSeconds = Math.trunc(difference / 1000);
-        const positive = difference >= 0;
+        const differenceSeconds = Math.trunc((currentDate - (+temporaryTime)) / 1000);
+        const positive = differenceSeconds >= 0;
         if (isNaN(temporaryTime.getTime())) {
             this.element.innerText = 'Invalid Date';
             return false;
