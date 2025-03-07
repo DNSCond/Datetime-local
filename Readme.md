@@ -2,8 +2,8 @@
 
 there are 2 classes in this package. `Datetime_local` and `Datetime_global`
 
-`Datetime_local` is an Advancement of `Date` and only uses local and utc. `Datetime_global` uses `Temporal` and can
-support Temporal Timezones.
+`Datetime_local` is an Advancement of `Date` and only uses local and utc.
+`Datetime_global` uses `Temporal` and can support Temporal Timezones.
 
 ## `import`ation
 
@@ -103,4 +103,4 @@ window.document.addEventListener('DOMContentLoaded', function () {
 
 ### contributing
 
-
+...
