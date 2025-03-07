@@ -1,6 +1,6 @@
 {
   "name": "datetime_global",
-  "version": "0.0.4",
+  "version": "0.0.6",
   "description": "my Datetime untility, it mixes the Advanced capabilities of Temporal polyfill with the simplicity of Date",
   "author": "binary-ant",
   "type": "module",

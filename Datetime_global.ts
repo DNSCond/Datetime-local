@@ -24,9 +24,7 @@ interface Datetime_global_constructor {
 
     parse(dateString: string, this_parserOnly: boolean): number,
 
-    parseISODate(dateString: string): RegExpMatchArray | null,
-
-    padding(strx: string | any, number?: number): string,
+    // padding(strx: string | any, number?: number): string,
 
     now(): bigint,
 

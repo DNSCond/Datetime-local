@@ -1,104 +1,120 @@
-# Datetime-global
+# Datetime-global: A Simplified Interface for Date and Temporal Timezones
 
-there are 2 classes in this package. `Datetime_local` and `Datetime_global`
+This package provides two classes: `Datetime_local` and `Datetime_global`.
 
-`Datetime_local` is an Advancement of `Date` and only uses local and utc.
-`Datetime_global` uses `Temporal` and can support Temporal Timezones.
+- `Datetime_local` is an advancement of the native `Date` object, supporting only local and UTC timezones. and i dont
+  think im going to support it for long
+- `Datetime_global` leverages `Temporal` to support a wide range of timezones.
 
-## `import`ation
+## Installation
+
+To install the package, run the following command:
 
 ```bash
 npm install datetime_global
 ```
 
-## why use this over Temporal?
+## Why Use This Package?
 
-uhh, DONT. this package is just me trying to have the simpler interface leveraging the advanced capabilities of
-Temporal.
+While this package aims to provide a simpler interface for handling dates and timezones, it is not a replacement for
+the `Temporal` API. If you need advanced temporal functionalities, consider using `Temporal` directly. However, if you
+prefer a `Date`-like interface with timezone support, this library might be a good fit.
 
-if you want `Date` but with timezone support then sure. use this library. but if you want Temporal then just navigate Temporal
+## `Datetime_local` Construction
 
-## `Datetime_local` construction
+To create a `Datetime_local` instance, you can use either `Datetime_local()` or `new Datetime_local()`. When passing a
+single string, `Datetime_local` uses `Datetime_local.parse`, which defaults to `Date.parse` after itself cannot parse
+the date. You can override `Datetime_local.parse` to support custom formats, but the return value must be a Number of
+milliseconds since the Unix epoch.
 
-to create a `Datetime_local` use `Datetime_local()` or `new Datetime_local()` whichever way you prefer. when taking a
-single string `Datetime_local` puts it into `Datetime_local.parse` with defaulting to `Date.parse`.
-override `Datetime_local.parse` to specify your own formats, the return value must be milliseconds since the unix epoch.
+If you pass multiple arguments or non-string values, they are directly passed to the `Date` constructor.
 
-if you pass more than 1 argument or pass things that arent a single string then it passes it directly to the `Date`
-constructor, with the flaws intact.
+**Note:** Unlike `Date`, `Datetime_local` will not ignore your parameters when using it without the `new` keyword. For
+example, `Datetime_local(2024, 0)` will return `Mon Jan 01 2024 01:00:00 GMT+0100 (Central European Standard Time)`
+instead of the current time.
 
-unlike the `Date` function, `Datetime_local` will not ignore if not called with new, `Datetime_local(2024, 0)`
-is `    Mon Jan 01 2024 01:00:00 GMT+0100 (Central European Standard Time)` not the current time.
+## `Datetime_global` Construction
 
-~~to replace `new Date(arguments)` use `new Datetime_local(arguments)` and your app should work.
-only `toTemporalInstant` will not be implemented.~~
+for argument 1, `Datetime_global` is more flexible and can accept various inputs:
 
-## `Datetime_global` construction
+- `Temporal.ZonedDateTime`
+- `Temporal.Instant`
+- `Date`
+- `Datetime_global`
+- `Datetime_local`
 
-`Datetime_global` is a little different, but still uses many qualities from Date.
+It also accepts a `Temporal.TimeZoneLike` to specify the desired timezone (as argument 2).
 
-`Datetime_global` takes either a `Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local`
-and converts it to a `Datetime_global` instance.
-
-be careful when passing it either a `BigInt` or a `Number` as with a `BigInt` it'll assume `epochNanoseconds` and
-with `Number` it'll assume `epochMilliseconds`. im not changing that, it's a feature.
-
-it also accepts a `Temporal.TimeZoneLike` which is what `timezoneId` you want it to have.
-
-~~to replace `new Date(arguments)` use `new Datetime_global(new Datetime_local(arguments))` and your app should work.
-only `toTemporalInstant` will not be implemented.~~
+**Note:** When passing a `BigInt`, it assumes `epochNanoseconds`, and when passing a `Number`, it
+assumes `epochMilliseconds`. that's a feature, not a mistake
 
 ## .methods
 
-methods are generic. you can pass anything that has the following
+Both `Datetime_local` and `Datetime_global` share several methods, but some are exclusive to `Datetime_global` and
+others to `Datetime_local`.
 
-- `Datetime_local`: simply pass something that has a date property that points to a Date. or implements enough of Date
-- `Datetime_global`: simply pass something with `time.epochMilliseconds` that is also a valid `Number`. for
-  example `{time: {epochMilliseconds: 1704067200000}}` will give it the impression that its `2024` in UTC.
+### Common Instance Methods
 
-note that some methods will be required to attach to `this`.
+- `getYear(): number`: Returns the year minus 1900.
+- `getFullYear(): number`: Returns the full year.
+- `getMonth(): number`: Returns the zero-indexed month.
+- `getDate(): number`: Returns the day of the month.
+- `getDay(): number`: Returns the day of the week.
+- `getHours(): number`, `getMinutes(): number`, `getSeconds(): number`, `getMilliseconds(): number`: Return the
+  respective time components.
+- `valueOf(): number`, `getTime(): number`: Return the number of milliseconds since the Unix epoch.
+- `toString(): string`: Returns a string representation of the date. note that `Datetime_global`'s implementation will
+  throw an error everytime, that is because i havent decided on the format
 
-### getters
+Each `get`\* method has a corresponding `getUTC`\* method, which behaves similarly but returns UTC-based values.
 
-they contain getters. that means most can be acted as a replacement for `Date`.
+### Differences Between `Datetime_local` and `Datetime_global`
 
-### methods for both
+- in `Datetime_local`, methods like `getYear` and `getFullYear` call their `Date` counterparts.
+- in `Datetime_global`, these methods return values based on the specified timezone.
 
-some methods arent available for `Datetime_global`
 
-- `getYear(): number`: basically `(the year contained) - 1900`.
-- `getFullYear(): number`: basically `(the year contained)`.
-- `getMonth(): number`: the Month. ill make sure its zero indexed just like `Date`.
-- `getDate(): number`, `getDayNumberMonth(): number`, `getDayNumber(): number`,: the day of the week.
-- `getDay(): number`, `getDayNumberWeek(): number`: the day of the week.
-- `getHours(): number`, `getMinutes`, `getSeconds`, `getMilliseconds`: self-explanatory i hope
-- `valueOf(): number`, `getTime(): number`: returns the number of milliseconds elapsed since the epoch, which is defined
-  as the midnight at the beginning of January 1, 1970, UTC
-- `toString():string`: `return (new Date(this.getTime())) .toString() .replace(/GMT/, 'UTC');`
+### static methods exclusive to `Datetime_local`
 
-note that in `Datetime_local` and `Datetime_global` they behave slightly differently. in `Datetime_local` they simply
-call their matching counterparts of `Date` but in `Datetime_global` they return the matching property in the specified
-timezone.
+- `parseISODate(dateString: string): RegExpMatchArray | null`: this method accepts the string that is required to be
+  supported by `Date.parse` and parses it with the components. its for internal use only, but treated as if its for
+  global use.
+- `now(): number`: technically not exclusive to `Datetime_local`, the one available in `Datetime_global` is quite
+  different. This method returns the number of milliseconds elapsed since the epoch, which is defined as the midnight at
+  the beginning of January 1, 1970, UTC
+- `padding(strx: string | any, number: number = 2): string`: pads the string `strx` the number of `number` times
+  with `"0"`. if you want more control over padding then use `String.prototype.padStart`
+- `getUTCOffset(offset: number): string`: returns a format like `UTC+0100` or  `UTC-0200`, if offset `isNaN` (if `isNaN`
+  returns true if offset is passed directly into it) then `UTC+Error` is returned
 
-also each `get*` has a `getUTC*` method, and again in `Datetime_local` they simply
-call their matching counterparts of `Date` but in `Datetime_global` they construct a `Date` from `epochMilliseconds` and
-then call the matching method. for example
+### common static methods
+
+- `parse(dateString: string, this_parserOnly: boolean = true): number`: parses the `dateString`, if `dateString`
+  is `undefined` then it returns `NaN` otherwise it attempts to parse a date out of the string. might behave quirky if
+  passed a giant text. if `this_parserOnly` if truthy then it returns `NaN` if this parser fails, if its false then it
+  passes `dateString` to `Date.parse` returning its result as is
+- `zeroms(): number`: returns the current timestamp setting milliseconds to 0
+
+this documentation is incomplete
+
+## Example Usage
+
+im still unsure what to put here
+
+## Contributing
+
+~~We welcome contributions! Please follow these steps to contribute:~~
+
+## License
+
+none yet. i still am questining whether to include GNU General Public License or MIT.
+
+## credits
+
+thanks for deepseek for writing the readme
 
 ```ts
-// in Datetime_local, i said they simply call their matching counterparts of `Date` 
-Datetime_local.prototype.getUTCSeconds = function (): number {
-    return this.date.getUTCSeconds();
-};
-// however in Datetime_global they construct a `Date` from `epochMilliseconds` and then call the matching method. for example
-Datetime_global.prototype.getUTCSeconds = function (this: Datetime_global): number {
-    const date: Date = new Date(this.time.epochMilliseconds);
-    return date.getUTCSeconds();
-};
-```
-
-## aftercode
-
-```ts
+// consider inserting this into your site
 window.document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('time.toLocalTime').forEach(function (each) {
         each.innerText = `${new Date(each.dateTime)}`.replace(/ GMT.+/, '');
@@ -108,7 +124,3 @@ window.document.addEventListener('DOMContentLoaded', function () {
     });
 });
 ```
-
-### contributing
-
-...
