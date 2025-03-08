@@ -1,4 +1,4 @@
-# Datetime-global: A Simplified Interface for Date and Temporal Timezones
+# Datetime_global: A Simplified Interface for Date and Temporal Timezones
 
 This package provides two classes: `Datetime_local` and `Datetime_global`.
 
@@ -72,7 +72,6 @@ Each `get`\* method has a corresponding `getUTC`\* method, which behaves similar
 
 - in `Datetime_local`, methods like `getYear` and `getFullYear` call their `Date` counterparts.
 - in `Datetime_global`, these methods return values based on the specified timezone.
-
 
 ### static methods exclusive to `Datetime_local`
 
