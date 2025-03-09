@@ -10,8 +10,10 @@ export type Datetime_global = {
     valueOf(this: Datetime_global): number,
     setTime(this: Datetime_global, timestamp: number): number,
     toHTML(this: Datetime_global): string,
-    toHTML_localeString(this: Datetime_global): string,
-
+    toHTMLString(this: Datetime_global): string,
+    // convertion utils
+    toDate(): Date,
+    toTimezone(): Datetime_global,
     // builtin-proxy
     getDay(): number;
     getYear(): number;
@@ -72,16 +74,12 @@ interface Datetime_global_constructor {
         year: number | undefined, month: number, date: number,
         hour: number, minute: number, second: number,
         ms: number, nanosecond: number): bigint,
-    fromComponentsUTC(
-        year: number | undefined, month: number, date: number,
-        hour: number, minute: number, second: number,
-        ms: number, nanosecond: number): bigint,
 }
 
 export const Datetime_global: Datetime_global_constructor = function (
     this: Datetime_global, from?: Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local | bigint | number,
     timezoneId: Temporal.TimeZoneLike = Temporal.Now.timeZoneId(),
-): Datetime_global | string | undefined|void {
+): Datetime_global | string | undefined | void {
     let timestamp: number | bigint, isBigInt: boolean = false;
     if (arguments.length === 0 || from === undefined) {
         from = Datetime_global.now();
