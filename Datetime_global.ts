@@ -81,7 +81,7 @@ interface Datetime_global_constructor {
 export const Datetime_global: Datetime_global_constructor = function (
     this: Datetime_global, from?: Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local | bigint | number,
     timezoneId: Temporal.TimeZoneLike = Temporal.Now.timeZoneId(),
-): Datetime_global | string | undefined {
+): Datetime_global | string | undefined|void {
     let timestamp: number | bigint, isBigInt: boolean = false;
     if (arguments.length === 0 || from === undefined) {
         from = Datetime_global.now();

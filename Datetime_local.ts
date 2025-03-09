@@ -178,7 +178,7 @@ export const Datetime_local: Datetime_local_constructor = function (
     hour: number = 0,
     minute: number = 0,
     second: number = 0,
-    ms: number = 0): Datetime_local | string | void {
+    ms: number = 0): Datetime_local | string | undefined | void {
     let date_time: Date = new Date();
     if (arguments.length === 1) {
         if ((typeof year) === 'string') {
