@@ -11,13 +11,44 @@ export type Datetime_global = {
     setTime(this: Datetime_global, timestamp: number): number,
     toHTML(this: Datetime_global): string,
     toHTML_localeString(this: Datetime_global): string,
+
+    // builtin-proxy
+    getDay(): number;
+    getYear(): number;
+    getFullYear(): number;
+    getMonth(): number;
+    getDate(): number;
+    getHours(): number;
+    getMinutes(): number;
+    getSeconds(): number;
+    getMilliseconds(): number;
+
+    // builtin-proxy-UTC
+    getUTCDay(): number;
+    getUTCYear(): number;
+    getUTCFullYear(): number;
+    getUTCMonth(): number;
+    getUTCDate(): number;
+    getUTCHours(): number;
+    getUTCMinutes(): number;
+    getUTCSeconds(): number;
+    getUTCMilliseconds(): number;
+    getTimezoneOffset(): number;
+    toJSON(): string;
+
+    // custom
+    getDayNumberWeek(): number;
+    getDayNumberMonth(): number;
+    getDayNumber(): number;
+    getDayName(): string;
+    getMonthName(): string;
 };
 
 interface Datetime_global_constructor {
-    new(from: Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local | bigint | number,
+    new(from?: Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local | bigint | number,
         timezoneId?: Temporal.TimeZoneLike): Datetime_global,
 
-    (from: Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local | bigint | number,
+    (from?: Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local | bigint | number,
      timezoneId?: Temporal.TimeZoneLike): string,
 
     parse_strict(string: string): Temporal.ZonedDateTime;
@@ -29,15 +60,37 @@ interface Datetime_global_constructor {
     now(): bigint,
 
     zeroms(): number,
+
+    zerons(): bigint,
+
+    daynames: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    monthnames: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    daynamesFull: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+    monthnamesFull: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+
+    fromComponentsUTC(
+        year: number | undefined, month: number, date: number,
+        hour: number, minute: number, second: number,
+        ms: number, nanosecond: number): bigint,
+    fromComponentsUTC(
+        year: number | undefined, month: number, date: number,
+        hour: number, minute: number, second: number,
+        ms: number, nanosecond: number): bigint,
 }
 
 export const Datetime_global: Datetime_global_constructor = function (
-    this: Datetime_global, from: Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local | bigint | number,
+    this: Datetime_global, from?: Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local | bigint | number,
     timezoneId: Temporal.TimeZoneLike = Temporal.Now.timeZoneId(),
 ): Datetime_global | string | undefined {
     let timestamp: number | bigint, isBigInt: boolean = false;
+    if (arguments.length === 0 || from === undefined) {
+        from = Datetime_global.now();
+    }
     if (from instanceof Temporal.ZonedDateTime || from instanceof Temporal.Instant) {
         timestamp = BigInt(from.epochNanoseconds);
+        isBigInt = true;
+    } else if (from instanceof Datetime_global) {
+        timestamp = from.time.epochNanoseconds;
         isBigInt = true;
     } else if (typeof from === 'bigint') {
         timestamp = from;
@@ -45,24 +98,43 @@ export const Datetime_global: Datetime_global_constructor = function (
     } else {
         timestamp = +from;
     }
+    const time: Temporal.ZonedDateTime = new Temporal.ZonedDateTime(
+        BigInt(timestamp) * (isBigInt ? 1n : 1000000n),
+        timezoneId);
     if (new.target) {
-        this.time = new Temporal.ZonedDateTime(
-            BigInt(timestamp) * (isBigInt ? 1n : 1000000n),
-            timezoneId);
+        this.time = time;
     } else {
-        const epochMilliseconds: number = Number(timestamp),
-            time: { epochMilliseconds: number } = {epochMilliseconds};
-        return Datetime_global.prototype.toString.call({time});
+        return Datetime_global.prototype.toString.call(Object.assign({time}, Datetime_global.prototype));
     }
 } as Datetime_global_constructor;
+Datetime_global.fromComponentsUTC = function (
+    year: number | undefined, month: number = 0, date: number = 1,
+    hour: number = 0, minute: number = 0, second: number = 0,
+    ms: number = 0, nanosecond: number = 0): bigint {
+    const day: number | undefined = date, millisecond: number | undefined = ms, timeZone: 'UTC' = 'UTC';
+    return Temporal.ZonedDateTime.from({
+        year, month, day, hour, minute,
+        second, millisecond, nanosecond
+        , timeZone,
+    }).epochNanoseconds;
+};
+
+/**
+ * parses a date like Temporal.ZonedDateTime.from only
+ * @param string
+ */
 Datetime_global.parse_strict = function (string: string): Temporal.ZonedDateTime {
     return Temporal.ZonedDateTime.from(string);
 };
-/**
- * throws an Error when used
- */
+
 Datetime_global.prototype.toString = function (this: Datetime_global): string {
-    throw new Error('toString is currently in progress');
+    const self: Datetime_global = this, pad = function (strx: string | any, number: number = 2): string {
+        return String(strx).padStart(Number(number), '0');
+    };
+    const offset: string = Datetime_local.getUTCOffset(self.getTimezoneOffset()),
+        string: string = `${self.getDayName()} ${self.getMonthName()} ${pad(self.getDate())}`,
+        time: string = `${pad(self.getHours())}:${pad(self.getMinutes())}:${pad(self.getSeconds())}`;
+    return `${string} ${pad(self.getFullYear(), 4)} ${time} ${offset} (${self.time.timeZoneId})`;
 };
 /**
  * The Datetime_local.now() static method returns the number of nanoseconds elapsed since the epoch, which is defined as the midnight at the beginning of January 1, 1970, UTC
@@ -71,8 +143,16 @@ Datetime_global.prototype.toString = function (this: Datetime_global): string {
 Datetime_global.now = function (): bigint {
     return Temporal.Now.instant().epochNanoseconds;
 };
+
+Datetime_global.zeroms = function (): number {
+    return (new Date).setMilliseconds(0);
+};
+
+Datetime_global.zerons = function (): bigint {
+    return BigInt(Datetime_global.zeroms()) * 1_000_000n;
+};
+
 Datetime_global.parse = Datetime_local.parse;
-Datetime_global.zeroms = Datetime_local.zeroms;
 Datetime_global.prototype[Symbol.toStringTag] = Datetime_global.name;
 Datetime_global.prototype.toDate = function (): Date {
     return new Date(this.time.epochMilliseconds);
@@ -100,9 +180,24 @@ Datetime_global.prototype.setTime = function (this: Datetime_global, timestamp: 
         this.time.timeZoneId);
     return this.time.epochMilliseconds;
 };
+/**
+ * an insertable HTML String representing this Date using the user's local datetime.
+ *
+ * @returns {string} an insertable HTML String representing this Date using the user's local datetime.
+ * @see {Datetime_global.prototype.toHTMLString} for using any timezone instead of the user's.
+ */
 Datetime_global.prototype.toHTML = function (this: Datetime_global): string {
     const date: Date = new Date(this.time.epochMilliseconds);
     return `<time datetime="${date.toISOString()}">${date}</time>`.replace(/GMT/, 'UTC');
+};
+/**
+ * an insertable HTML String representing this Datetime using the specified timezone
+ *
+ * @returns {string} an insertable HTML String representing this Datetime using the specified timezone
+ */
+Datetime_global.prototype.toHTMLString = function (this: Datetime_global): string {
+    const date: Date = new Date(this.time.epochMilliseconds);
+    return `<time datetime="${date.toISOString()}">${this.toString()}</time>`;
 };
 // builtin-proxy
 /**
@@ -110,7 +205,7 @@ Datetime_global.prototype.toHTML = function (this: Datetime_global): string {
  * @returns {number}
  */
 Datetime_global.prototype.getDay = function (this: Datetime_global): number {
-    return this.time.dayOfWeek;
+    return this.time.dayOfWeek % 7;
 };
 /**
  * a proxy for `Date.prototype.getYear` or `this.date.getFullYear() - 1900`.
@@ -258,6 +353,9 @@ Datetime_global.prototype.toDatetime_local = function () {
 Datetime_global.prototype.toISOString = function (): string {
     return (new Date(this.time.epochMilliseconds)).toISOString();
 };
+Datetime_global.prototype.toJSON = function (): string {
+    return this.time.toJSON();
+};
 Datetime_global.prototype.setFullYear = function (fullYear: number, month?: number, date?: number): number {
     const nanosecond: bigint = BigInt(this.time.nanosecond),
         datetime: Date = new Date(this.time.epochMilliseconds);
@@ -351,4 +449,63 @@ Datetime_global.prototype.toLocaleTimeString = function (locales?: Intl.LocalesA
 };
 Datetime_global.prototype.toTemporalZonedDateTime = function (): Temporal.ZonedDateTime {
     return this.time;
+};
+Datetime_global.daynames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+Datetime_global.monthnames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+Datetime_global.daynamesFull = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+Datetime_global.monthnamesFull = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+// custom
+/**
+ * a proxy for `Date.prototype.getDay`
+ * @returns {number}
+ */
+Datetime_global.prototype.getDayNumberWeek = function (): number {
+    return this.getDay();
+};
+/**
+ * a proxy for `Date.prototype.getDate`
+ * @returns {number}
+ */
+Datetime_global.prototype.getDayNumber = function (): number {
+    return this.getDate();
+};
+/**
+ * a proxy for `Date.prototype.getDate`
+ * @returns {number}
+ */
+Datetime_global.prototype.getDayNumberMonth = function (): number {
+    return this.getDate();
+};
+
+/**
+ * returns one of `['Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat']` if `Datetime_global.daynames` isnt Modified, otherwise it returns `string`
+ * @returns {'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | string} arcording to `Date.prototype.getDay`
+ */
+Datetime_global.prototype.getDayName = function (): 'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | string {
+    return Datetime_global.daynames[this.getDay()];
+};
+/**
+ * returns one of `['Jan' | 'Feb' | 'Mar' | 'Apr' | 'May' | 'Jun' | 'Jul' | 'Aug' | 'Sep' | 'Oct' | 'Nov' | 'Dec']` if
+ * `Datetime_global.monthnames` isnt Modified, otherwise it returns `string`
+ * @returns {'Jan' | 'Feb' | 'Mar' | 'Apr' | 'May' | 'Jun' | 'Jul' | 'Aug' | 'Sep' | 'Oct' | 'Nov' | 'Dec' | string} arcording to `Date.prototype.getMonth`
+ */
+Datetime_global.prototype.getMonthName = function (): 'Jan' | 'Feb' | 'Mar' | 'Apr' | 'May' | 'Jun' | 'Jul' | 'Aug' | 'Sep' | 'Oct' | 'Nov' | 'Dec' | string {
+    return Datetime_global.monthnames[this.getMonth()];
+};
+/**
+ * returns one of `['Sunday'| 'Monday'| 'Tuesday'| 'Wednesday'| 'Thursday'| 'Friday'| 'Saturday']` if
+ * `Datetime_global.daynamesFull` isnt Modified, otherwise it returns `string`
+ * @returns {'Sunday'| 'Monday'| 'Tuesday'| 'Wednesday'| 'Thursday'| 'Friday'| 'Saturday' | string} arcording to `Date.prototype.getDay`
+ */
+Datetime_global.prototype.getFullDayName = function (): 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | string {
+    return Datetime_global.daynamesFull[this.getDay()];
+};
+/**
+ * returns one of `['January'| 'February'| 'March'| 'April'| 'May'| 'June'| 'July'| 'August'| 'September'| 'October'| 'November'| 'December']` if
+ * `Datetime_global.monthnamesFull` isnt Modified, otherwise it returns `string`
+ * @returns {'January'| 'February'| 'March'| 'April'| 'May'| 'June'| 'July'| 'August'| 'September'| 'October'| 'November'| 'December' | string}
+ * arcording to `Date.prototype.getMonth`
+ */
+Datetime_global.prototype.getFullMonthName = function (): 'January' | 'February' | 'March' | 'April' | 'May' | 'June' | 'July' | 'August' | 'September' | 'October' | 'November' | 'December' | string {
+    return Datetime_global.monthnamesFull[this.getMonth()];
 };

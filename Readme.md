@@ -53,6 +53,8 @@ assumes `epochMilliseconds`. that's a feature, not a mistake
 Both `Datetime_local` and `Datetime_global` share several methods, but some are exclusive to `Datetime_global` and
 others to `Datetime_local`.
 
+this class uses JSDoc.
+
 ### Common Instance Methods
 
 - `getYear(): number`: Returns the year minus 1900.
@@ -63,15 +65,21 @@ others to `Datetime_local`.
 - `getHours(): number`, `getMinutes(): number`, `getSeconds(): number`, `getMilliseconds(): number`: Return the
   respective time components.
 - `valueOf(): number`, `getTime(): number`: Return the number of milliseconds since the Unix epoch.
-- `toString(): string`: Returns a string representation of the date. note that `Datetime_global`'s implementation will
-  throw an error everytime, that is because i havent decided on the format
 
 Each `get`\* method has a corresponding `getUTC`\* method, which behaves similarly but returns UTC-based values.
+
+### methods exclusive to `Datetime_global`
+
+- `toString(): string`: Returns a string representation of the date. looks like "Tue Jun 25 2024 16:30:00 UTC+0200 (Europe/Amsterdam)"
+
+this documentation is incomplete
 
 ### Differences Between `Datetime_local` and `Datetime_global`
 
 - in `Datetime_local`, methods like `getYear` and `getFullYear` call their `Date` counterparts.
 - in `Datetime_global`, these methods return values based on the specified timezone.
+
+this documentation is incomplete
 
 ### static methods exclusive to `Datetime_local`
 
@@ -86,6 +94,8 @@ Each `get`\* method has a corresponding `getUTC`\* method, which behaves similar
 - `getUTCOffset(offset: number): string`: returns a format like `UTC+0100` or  `UTC-0200`, if offset `isNaN` (if `isNaN`
   returns true if offset is passed directly into it) then `UTC+Error` is returned
 
+this documentation is incomplete
+
 ### common static methods
 
 - `parse(dateString: string, this_parserOnly: boolean = true): number`: parses the `dateString`, if `dateString`
@@ -98,7 +108,36 @@ this documentation is incomplete
 
 ## Example Usage
 
-im still unsure what to put here
+fetching a few results
+
+```javascript
+// import the library
+import {Datetime_global} from "./Datetime_global.js";
+// the Datetime_global is very specific in its construction. meaning Datetime_global.fromComponentsUTC is used to
+// construct a Datetime_global, the components are to be specified in UTC timwezone
+const timestampBigIntUTC = Datetime_global.fromComponentsUTC(2024, 6, 25, 14, 30, 0, 0, 0);
+// construct the class
+const time = new Datetime_global(timestampBigIntUTC);
+
+// return a string like Tue Jun 25 2024 14:30:00 UTC+0000 (UTC) <time datetime="2024-06-25T14:30:00.000Z">Tue Jun 25 2024 14:30:00 UTC+0000 (UTC)</time>
+// in your local time
+console.log(time.toString(), time.toHTMLString());
+
+// change the timezone to america newyork and return its time
+console.log(time.toTimezone('America/New_York').toString());
+// change the timezone to asia tokyo and return its time
+console.log(time.toTimezone('Asia/Tokyo').toString());
+// change the timezone to UTC and return its time
+console.log(time.toTimezone('UTC').toString());
+// Asia/Tokyo, the time specified but as an html insertable
+console.log(time.toTimezone('Asia/Tokyo').toHTMLString());
+// UTC, the time specified but as an html insertable
+console.log(time.toTimezone('UTC').toHTMLString());
+// an random timezone
+console.log(time.toTimezone('America/Anchorage').toLocaleString());
+// json "2024-06-25T06:30:00-08:00[America/Anchorage]"
+console.log(JSON.stringify(time.toTimezone('America/Anchorage')));
+```
 
 ## Contributing
 
@@ -106,20 +145,22 @@ im still unsure what to put here
 
 ## License
 
-none yet. i still am questining whether to include GNU General Public License or MIT.
+Mit Licence
 
 ## credits
 
-thanks for deepseek for writing the readme
+~~thanks for deepseek for writing the readme~~
+
+## Aftercode
+consider inserting this into your site
 
 ```ts
-// consider inserting this into your site
 window.document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('time.toLocalTime').forEach(function (each) {
-        each.innerText = `${new Date(each.dateTime)}`.replace(/ GMT.+/, '');
-    });
-    document.querySelectorAll('time.toSelfTime').forEach(function (each) {
-        each.innerText = (new Date(each.dateTime)).toString();
-    });
+  document.querySelectorAll('time.toLocalTime').forEach(function (each) {
+    each.innerText = `${new Date(each.dateTime)}`.replace(/ GMT.+/, '');
+  });
+  document.querySelectorAll('time.toSelfTime').forEach(function (each) {
+    each.innerText = (new Date(each.dateTime)).toString();
+  });
 });
 ```

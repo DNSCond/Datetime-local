@@ -286,7 +286,7 @@ Datetime_local.prototype.toString = function () {
     // const s = `${Datetime_local.daynames[date_time.getDay()]} ${monthName}` +
     //     ` ${pad(date_time.getDate())} ${pad(date_time.getFullYear(), 4)}` +
     //     ` ${pad(date_time.getHours())}:${pad(date_time.getMinutes())}` +
-    //     `:${pad(date_time.getSeconds())} ${Datetime_local.getUTCOffset(offset)}`
+    //     `${pad(date_time.getSeconds())} ${Datetime_local.getUTCOffset(offset)}`
     // return `${s} (${timezone})`;
 };
 /**
