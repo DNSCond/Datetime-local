@@ -129,9 +129,9 @@ console.log(time.toTimezone('America/New_York').toString());
 console.log(time.toTimezone('Asia/Tokyo').toString());
 // change the timezone to UTC and return its time
 console.log(time.toTimezone('UTC').toString());
-// Asia/Tokyo, the time specified but as an html insertable
+// Asia/Tokyo, the time specified but as a html insertable
 console.log(time.toTimezone('Asia/Tokyo').toHTMLString());
-// UTC, the time specified but as an html insertable
+// UTC, the time specified but as a html insertable
 console.log(time.toTimezone('UTC').toHTMLString());
 // an random timezone
 console.log(time.toTimezone('America/Anchorage').toLocaleString());
@@ -147,9 +147,6 @@ console.log(JSON.stringify(time.toTimezone('America/Anchorage')));
 
 Mit Licence
 
-## credits
-
-~~thanks for deepseek for writing the readme~~
 
 ## Aftercode
 consider inserting this into your site

@@ -73,13 +73,28 @@ interface Datetime_global_constructor {
     fromComponentsUTC(
         year: number | undefined, month: number, date: number,
         hour: number, minute: number, second: number,
-        ms: number, nanosecond: number): bigint,
+        ms: number, nanosecond: bigint): bigint,
+
+    getUTCOffset(offset: number): string,
+
+    htmlToCurrentTime(timetags: HTMLTimeElement[]): void
 }
 
+/**
+ * constructs a Datetime_global or Datetime_global string based on different conditions
+ * @param from {Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local | bigint | number}
+ * either one of these classes. if a `bigint` gets passed in then it will be the nanoseconds since the epoch. otherwise
+ * it will be the milliseconds since the epoch. relying on implicit convertion of a bigint will probably result in a
+ * `TypeError: cant convert BigInt to number` as BigInts will have to be passed explicitly
+ * @param timezoneId the Temporal TimezoneId, if left out then local time is assumed `Temporal.Now.timeZoneId()`.
+ * @returns {string|Datetime_global} either a string or an instanceof Datetime_global.
+ * @constructor
+ * @function
+ */
 export const Datetime_global: Datetime_global_constructor = function (
     this: Datetime_global, from?: Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local | bigint | number,
     timezoneId: Temporal.TimeZoneLike = Temporal.Now.timeZoneId(),
-): Datetime_global | string | undefined | void {
+): Datetime_global | string | void {
     let timestamp: number | bigint, isBigInt: boolean = false;
     if (arguments.length === 0 || from === undefined) {
         from = Datetime_global.now();
@@ -97,7 +112,7 @@ export const Datetime_global: Datetime_global_constructor = function (
         timestamp = +from;
     }
     const time: Temporal.ZonedDateTime = new Temporal.ZonedDateTime(
-        BigInt(timestamp) * (isBigInt ? 1n : 1000000n),
+        BigInt(timestamp) * (isBigInt ? 1n : 1_000_000n),
         timezoneId);
     if (new.target) {
         this.time = time;
@@ -105,26 +120,56 @@ export const Datetime_global: Datetime_global_constructor = function (
         return Datetime_global.prototype.toString.call(Object.assign({time}, Datetime_global.prototype));
     }
 } as Datetime_global_constructor;
+
+/**
+ * forms a date based on Date, returing the nanoseconds since the epoch
+ * @param year the year, if under 100 and above 0 then 1900 will be added
+ * @param month the zero indexed month
+ * @param date the 1 indexed day of the month
+ * @param hour the hour
+ * @param minute the minute
+ * @param second the second
+ * @param millisecond the millisecond
+ * @param nanosecond the nanosecond
+ * @returns {bigint} nanoseconds since the epoch
+ */
 Datetime_global.fromComponentsUTC = function (
-    year: number | undefined, month: number = 0, date: number = 1,
+    year: number | string | undefined, month: number = 0, date: number = 1,
     hour: number = 0, minute: number = 0, second: number = 0,
-    ms: number = 0, nanosecond: number = 0): bigint {
-    const day: number | undefined = date, millisecond: number | undefined = ms, timeZone: 'UTC' = 'UTC';
-    return Temporal.ZonedDateTime.from({
-        year, month, day, hour, minute,
-        second, millisecond, nanosecond
-        , timeZone,
-    }).epochNanoseconds;
+    millisecond: number = 0, nanosecond: bigint | number = 0n): bigint {
+    const date_time: Date = new Date();
+    if (arguments.length === 1) {
+        if (typeof year === 'string') {
+            year = Datetime_local.parse(`${year}`, false);
+        }
+        if (typeof year === "number") {
+            date_time.setTime(+new Date(year));
+        } else {
+            date_time.setTime(NaN);
+        }
+    } else if (arguments.length > 1) {
+        if (typeof year === "number") {
+            date_time.setTime(+new Date(year, month, date, hour, minute, second, millisecond));
+        } else {
+            date_time.setTime(NaN);
+        }
+    }
+    return (BigInt(+date_time) * 1_000_000n) + BigInt(nanosecond);
 };
 
 /**
- * parses a date like Temporal.ZonedDateTime.from only
+ * parses a date like `Temporal.ZonedDateTime.from` only
  * @param string
  */
 Datetime_global.parse_strict = function (string: string): Temporal.ZonedDateTime {
     return Temporal.ZonedDateTime.from(string);
 };
-
+/**
+ * formats a string like Tue Jun 25 2024 14:30:00 UTC+0000 (UTC) based on the date contained
+ *
+ * note that you can also use this with Date. you just have tto attach something with time.timezoneId
+ * @returns {string} formats a string like Tue Jun 25 2024 14:30:00 UTC+0000 (UTC) based on the date contained
+ */
 Datetime_global.prototype.toString = function (this: Datetime_global): string {
     const self: Datetime_global = this, pad = function (strx: string | any, number: number = 2): string {
         return String(strx).padStart(Number(number), '0');
@@ -136,7 +181,7 @@ Datetime_global.prototype.toString = function (this: Datetime_global): string {
 };
 /**
  * The Datetime_local.now() static method returns the number of nanoseconds elapsed since the epoch, which is defined as the midnight at the beginning of January 1, 1970, UTC
- * @returns {number} the number of nanoseconds elapsed since the epoch, which is defined as the midnight at the beginning of January 1, 1970, UTC
+ * @returns {bigint} the number of nanoseconds elapsed since the epoch, which is defined as the midnight at the beginning of January 1, 1970, UTC
  */
 Datetime_global.now = function (): bigint {
     return Temporal.Now.instant().epochNanoseconds;
@@ -507,3 +552,22 @@ Datetime_global.prototype.getFullDayName = function (): 'Sunday' | 'Monday' | 'T
 Datetime_global.prototype.getFullMonthName = function (): 'January' | 'February' | 'March' | 'April' | 'May' | 'June' | 'July' | 'August' | 'September' | 'October' | 'November' | 'December' | string {
     return Datetime_global.monthnamesFull[this.getMonth()];
 };
+/**
+ * format a UTC offset from offset in minutes call
+ * @param offset
+ */
+Datetime_global.getUTCOffset = function (offset: number): string {
+    if (isNaN(offset)) return 'UTC+Error';
+    const sign: "-" | "+" = offset > 0 ? "-" : "+", absOffset: number = Math.abs(offset);
+    const hours: string = String(Math.floor(absOffset / 60)).padStart(2, "0");
+    const minutes: string = String(absOffset % 60).padStart(2, "0");
+    return `UTC${sign}${hours}${minutes}`;
+};
+Datetime_global.htmlToCurrentTime = function (timetags: HTMLTimeElement[] = []): void {
+    Array.from(timetags).forEach(function (each: HTMLTimeElement): void {
+        const tz: string = each.getAttribute('data-iana-timezone') ?? Temporal.Now.timeZoneId(),
+            d: Datetime_global = new Datetime_global(new Date(each.dateTime), tz);
+        each.innerText = d.toString();
+    });
+};
+

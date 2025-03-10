@@ -1,6 +1,17 @@
 "use strict";
 import { Datetime_local } from "./Datetime_local.js";
 import { Temporal } from '@js-temporal/polyfill';
+/**
+ * constructs a Datetime_global or Datetime_global string based on different conditions
+ * @param from {Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local | bigint | number}
+ * either one of these classes. if a `bigint` gets passed in then it will be the nanoseconds since the epoch. otherwise
+ * it will be the milliseconds since the epoch. relying on implicit convertion of a bigint will probably result in a
+ * `TypeError: cant convert BigInt to number` as BigInts will have to be passed explicitly
+ * @param timezoneId the Temporal TimezoneId, if left out then local time is assumed `Temporal.Now.timeZoneId()`.
+ * @returns {string|Datetime_global} either a string or an instanceof Datetime_global.
+ * @constructor
+ * @function
+ */
 export const Datetime_global = function (from, timezoneId = Temporal.Now.timeZoneId()) {
     let timestamp, isBigInt = false;
     if (arguments.length === 0 || from === undefined) {
@@ -29,21 +40,54 @@ export const Datetime_global = function (from, timezoneId = Temporal.Now.timeZon
         return Datetime_global.prototype.toString.call(Object.assign({ time }, Datetime_global.prototype));
     }
 };
-Datetime_global.fromComponentsUTC = function (year, month = 0, date = 1, hour = 0, minute = 0, second = 0, ms = 0, nanosecond = 0) {
-    const day = date, millisecond = ms, timeZone = 'UTC';
-    return Temporal.ZonedDateTime.from({
-        year, month, day, hour, minute,
-        second, millisecond, nanosecond,
-        timeZone,
-    }).epochNanoseconds;
+/**
+ * forms a date based on Date, returing the nanoseconds since the epoch
+ * @param year the year, if under 100 and above 0 then 1900 will be added
+ * @param month the zero indexed month
+ * @param date the 1 indexed day of the month
+ * @param hour the hour
+ * @param minute the minute
+ * @param second the second
+ * @param millisecond the millisecond
+ * @param nanosecond the nanosecond
+ * @returns {bigint} nanoseconds since the epoch
+ */
+Datetime_global.fromComponentsUTC = function (year, month = 0, date = 1, hour = 0, minute = 0, second = 0, millisecond = 0, nanosecond = 0n) {
+    const date_time = new Date();
+    if (arguments.length === 1) {
+        if (typeof year === 'string') {
+            year = Datetime_local.parse(`${year}`, false);
+        }
+        if (typeof year === "number") {
+            date_time.setTime(+new Date(year));
+        }
+        else {
+            date_time.setTime(NaN);
+        }
+    }
+    else if (arguments.length > 1) {
+        if (typeof year === "number") {
+            date_time.setTime(+new Date(year, month, date, hour, minute, second, millisecond));
+        }
+        else {
+            date_time.setTime(NaN);
+        }
+    }
+    return (BigInt(+date_time) * 1000000n) + BigInt(nanosecond);
 };
 /**
- * parses a date like Temporal.ZonedDateTime.from only
+ * parses a date like `Temporal.ZonedDateTime.from` only
  * @param string
  */
 Datetime_global.parse_strict = function (string) {
     return Temporal.ZonedDateTime.from(string);
 };
+/**
+ * formats a string like Tue Jun 25 2024 14:30:00 UTC+0000 (UTC) based on the date contained
+ *
+ * note that you can also use this with Date. you just have tto attach something with time.timezoneId
+ * @returns {string} formats a string like Tue Jun 25 2024 14:30:00 UTC+0000 (UTC) based on the date contained
+ */
 Datetime_global.prototype.toString = function () {
     const self = this, pad = function (strx, number = 2) {
         return String(strx).padStart(Number(number), '0');
@@ -53,7 +97,7 @@ Datetime_global.prototype.toString = function () {
 };
 /**
  * The Datetime_local.now() static method returns the number of nanoseconds elapsed since the epoch, which is defined as the midnight at the beginning of January 1, 1970, UTC
- * @returns {number} the number of nanoseconds elapsed since the epoch, which is defined as the midnight at the beginning of January 1, 1970, UTC
+ * @returns {bigint} the number of nanoseconds elapsed since the epoch, which is defined as the midnight at the beginning of January 1, 1970, UTC
  */
 Datetime_global.now = function () {
     return Temporal.Now.instant().epochNanoseconds;
@@ -410,4 +454,22 @@ Datetime_global.prototype.getFullDayName = function () {
  */
 Datetime_global.prototype.getFullMonthName = function () {
     return Datetime_global.monthnamesFull[this.getMonth()];
+};
+/**
+ * format a UTC offset from offset in minutes call
+ * @param offset
+ */
+Datetime_global.getUTCOffset = function (offset) {
+    if (isNaN(offset))
+        return 'UTC+Error';
+    const sign = offset > 0 ? "-" : "+", absOffset = Math.abs(offset);
+    const hours = String(Math.floor(absOffset / 60)).padStart(2, "0");
+    const minutes = String(absOffset % 60).padStart(2, "0");
+    return `UTC${sign}${hours}${minutes}`;
+};
+Datetime_global.htmlToCurrentTime = function (timetags = []) {
+    Array.from(timetags).forEach(function (each) {
+        const tz = each.getAttribute('data-iana-timezone') ?? Temporal.Now.timeZoneId(), d = new Datetime_global(new Date(each.dateTime), tz);
+        each.innerText = d.toString();
+    });
 };
