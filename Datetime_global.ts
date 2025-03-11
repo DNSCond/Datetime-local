@@ -71,9 +71,9 @@ interface Datetime_global_constructor {
     monthnamesFull: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
 
     fromComponentsUTC(
-        year: number | undefined, month: number, date: number,
-        hour: number, minute: number, second: number,
-        ms: number, nanosecond: bigint): bigint,
+        year?: number | undefined, month?: number, date?: number,
+        hour?: number, minute?: number, second?: number,
+        ms?: number, nanosecond?: bigint | number): bigint,
 
     getUTCOffset(offset: number): string,
 
@@ -143,13 +143,13 @@ Datetime_global.fromComponentsUTC = function (
             year = Datetime_local.parse(`${year}`, false);
         }
         if (typeof year === "number") {
-            date_time.setTime(+new Date(year));
+            date_time.setTime(+year);
         } else {
             date_time.setTime(NaN);
         }
     } else if (arguments.length > 1) {
         if (typeof year === "number") {
-            date_time.setTime(+new Date(year, month, date, hour, minute, second, millisecond));
+            date_time.setTime(Date.UTC(year, month, date, hour, minute, second, millisecond));
         } else {
             date_time.setTime(NaN);
         }

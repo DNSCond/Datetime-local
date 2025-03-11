@@ -59,7 +59,7 @@ Datetime_global.fromComponentsUTC = function (year, month = 0, date = 1, hour = 
             year = Datetime_local.parse(`${year}`, false);
         }
         if (typeof year === "number") {
-            date_time.setTime(+new Date(year));
+            date_time.setTime(+year);
         }
         else {
             date_time.setTime(NaN);
@@ -67,7 +67,7 @@ Datetime_global.fromComponentsUTC = function (year, month = 0, date = 1, hour = 
     }
     else if (arguments.length > 1) {
         if (typeof year === "number") {
-            date_time.setTime(+new Date(year, month, date, hour, minute, second, millisecond));
+            date_time.setTime(Date.UTC(year, month, date, hour, minute, second, millisecond));
         }
         else {
             date_time.setTime(NaN);
