@@ -13,7 +13,7 @@ export type Datetime_global = {
     toHTMLString(this: Datetime_global): string,
     // convertion utils
     toDate(): Date,
-    toTimezone(): Datetime_global,
+    toTimezone(this: Datetime_global, timezoneId: Temporal.TimeZoneLike): Datetime_global,
     // builtin-proxy
     getDay(): number;
     getYear(): number;
@@ -200,7 +200,7 @@ Datetime_global.prototype[Symbol.toStringTag] = Datetime_global.name;
 Datetime_global.prototype.toDate = function (): Date {
     return new Date(this.time.epochMilliseconds);
 };
-Datetime_global.prototype.toTimezone = function (this: Datetime_global, timezoneId: Temporal.TimeZoneLike) {
+Datetime_global.prototype.toTimezone = function (this: Datetime_global, timezoneId: Temporal.TimeZoneLike): Datetime_global {
     return new Datetime_global(this.time.epochNanoseconds, timezoneId);
 };
 /**
