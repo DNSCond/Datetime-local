@@ -26,6 +26,14 @@ console.log(time.toTimezone('UTC').toHTMLString());
 console.log(time.toTimezone('America/Anchorage').toLocaleString());
 // json "2024-06-25T06:30:00-08:00[America/Anchorage]"
 console.log(JSON.stringify(time.toTimezone('America/Anchorage')));
+time = new Datetime_global();
+console.log(time.toTimezone('America/New_York').toHTMLDiscordString('t') + ',<br>');
+console.log(time.toTimezone('UTC').toHTMLDiscordString('T') + ',<br>');
+console.log(time.toTimezone('America/Anchorage').toHTMLDiscordString('d') + ',<br>');
+console.log(time.toTimezone('America/Anchorage').toHTMLDiscordString('D') + ',<br>');
+console.log(time.toTimezone('Asia/Tokyo').toHTMLDiscordString('f') + ',<br>');
+console.log(time.toHTMLDiscordString('F') + ',<br>');
+console.log(time.toHTMLDiscordString('R'));
 
 console.log((new Datetime_global()).toHTMLString());
 // if timeLeft === timeRight, then this expression should also be true, always
@@ -51,4 +59,27 @@ console.log(Datetime_global.prototype.toJSON.call({time}));
 console.log(Datetime_global.prototype.toJSON.call(new Datetime_global(Datetime_global.fromComponentsUTC(
     2024, 7, 15, 14, 25, 50, 0, 50550400n,
 ))));
+
+function chunk(array) {
+    let index = 0, temporary = [];
+    const result = [];
+    for (const arrayElement of Array.from(array)) {
+        temporary.push(arrayElement);
+        if (((++index) % 3) === 0) {
+            result.push(temporary);
+            temporary = [];
+        }
+    }
+    return result;
+}
+
+function underscoreNumber(n) {
+    return chunk(Array.from(BigInt(n).toString()).reverse()).map(function (e) {
+        return e.reverse().join().replace(/\D/g, '');
+    }).reverse().join().replace(/,/g, '_');
+}
+
+const zerons = Datetime_global.zerons();
+console.log(underscoreNumber(zerons), zerons);
+
 console.log();

@@ -44,13 +44,17 @@ export type Datetime_global = {
     getDayNumber(): number;
     getDayName(): string;
     getMonthName(): string;
+    getFullMonthName(): string;
+    getFullDayName(): string;
+
+    toHTMLDiscordString(this: Datetime_global, f: "R" | "T" | "t" | "f" | "F" | "D" | "d"): string
 };
 
 interface Datetime_global_constructor {
-    new(from?: Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local | bigint | number,
+    new(from?: Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local | bigint | number | undefined,
         timezoneId?: Temporal.TimeZoneLike): Datetime_global,
 
-    (from?: Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local | bigint | number,
+    (from?: Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local | bigint | number | undefined,
      timezoneId?: Temporal.TimeZoneLike): string,
 
     parse_strict(string: string): Temporal.ZonedDateTime;
@@ -92,7 +96,7 @@ interface Datetime_global_constructor {
  * @function
  */
 export const Datetime_global: Datetime_global_constructor = function (
-    this: Datetime_global, from?: Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local | bigint | number,
+    this: Datetime_global, from: Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local | bigint | number | undefined = undefined,
     timezoneId: Temporal.TimeZoneLike = Temporal.Now.timeZoneId(),
 ): Datetime_global | string | void {
     let timestamp: number | bigint, isBigInt: boolean = false;
@@ -165,21 +169,6 @@ Datetime_global.parse_strict = function (string: string): Temporal.ZonedDateTime
     return Temporal.ZonedDateTime.from(string);
 };
 /**
- * formats a string like Tue Jun 25 2024 14:30:00 UTC+0000 (UTC) based on the date contained
- *
- * note that you can also use this with Date. you just have tto attach something with time.timezoneId
- * @returns {string} formats a string like Tue Jun 25 2024 14:30:00 UTC+0000 (UTC) based on the date contained
- */
-Datetime_global.prototype.toString = function (this: Datetime_global): string {
-    const self: Datetime_global = this, pad = function (strx: string | any, number: number = 2): string {
-        return String(strx).padStart(Number(number), '0');
-    };
-    const offset: string = Datetime_local.getUTCOffset(self.getTimezoneOffset()),
-        string: string = `${self.getDayName()} ${self.getMonthName()} ${pad(self.getDate())}`,
-        time: string = `${pad(self.getHours())}:${pad(self.getMinutes())}:${pad(self.getSeconds())}`;
-    return `${string} ${pad(self.getFullYear(), 4)} ${time} ${offset} (${self.time.timeZoneId})`;
-};
-/**
  * The Datetime_local.now() static method returns the number of nanoseconds elapsed since the epoch, which is defined as the midnight at the beginning of January 1, 1970, UTC
  * @returns {bigint} the number of nanoseconds elapsed since the epoch, which is defined as the midnight at the beginning of January 1, 1970, UTC
  */
@@ -224,6 +213,21 @@ Datetime_global.prototype.setTime = function (this: Datetime_global, timestamp: 
     return this.time.epochMilliseconds;
 };
 /**
+ * formats a string like Tue Jun 25 2024 14:30:00 UTC+0000 (UTC) based on the date contained
+ *
+ * note that you can also use this with Date. you just have tto attach something with time.timezoneId
+ * @returns {string} formats a string like Tue Jun 25 2024 14:30:00 UTC+0000 (UTC) based on the date contained
+ */
+Datetime_global.prototype.toString = function (this: Datetime_global): string {
+    const self: Datetime_global = this, pad = function (strx: string | any, number: number = 2): string {
+        return String(strx).padStart(Number(number), '0');
+    };
+    const offset: string = Datetime_local.getUTCOffset(self.getTimezoneOffset()),
+        string: string = `${self.getDayName()} ${self.getFullMonthName()} ${pad(self.getDate())}`,
+        time: string = `${pad(self.getHours())}:${pad(self.getMinutes())}:${pad(self.getSeconds())}`;
+    return `${string} ${pad(self.getFullYear(), 4)} ${time} ${offset} (${self.time.timeZoneId})`;
+};
+/**
  * an insertable HTML String representing this Date using the user's local datetime.
  *
  * @returns {string} an insertable HTML String representing this Date using the user's local datetime.
@@ -241,6 +245,61 @@ Datetime_global.prototype.toHTML = function (this: Datetime_global): string {
 Datetime_global.prototype.toHTMLString = function (this: Datetime_global): string {
     const date: Date = new Date(this.time.epochMilliseconds);
     return `<time datetime="${date.toISOString()}">${this.toString()}</time>`;
+};
+
+/**
+ * an insertable HTML String representing this Datetime using the specified timezone
+ *
+ * @returns {string} an insertable HTML String representing this Datetime using the specified timezone
+ */
+Datetime_global.prototype.toHTMLDiscordString = function (
+    this: Datetime_global, f: "R" | "T" | "t" | "f" | "F" | "D" | "d" = 'f'): string {
+    let date: Date = new Date(this.time.epochMilliseconds), strx = this.toString();
+    const self: Datetime_global = this, pad = function (strx: string | any, number: number = 2): string {
+        return String(strx).padStart(Number(number), '0');
+    }, t: string = `${pad(self.getHours())}:${pad(self.getMinutes())}`;
+    switch (f) {
+        case 't':
+            strx = t;
+            break;
+        case 'T':
+            strx = `${t}:${pad(self.getSeconds())}`;
+            break;
+        case 'd':
+            strx = `${pad(self.getFullYear(), 4)}-${pad(self.getMonth() + 1)}-${pad(self.getDate())}`;
+            break;
+        case 'D':
+            strx = `${pad(self.getFullYear(), 4)} ${pad(self.getFullMonthName())} ${pad(self.getDate())}`;
+            break;
+        case 'f':
+            strx = `${pad(self.getFullYear(), 4)} ${pad(self.getFullMonthName())} ${pad(self.getDate())} ${t}`;
+            break;
+        case 'F':
+            strx = `${pad(self.getFullDayName())}, ${pad(self.getFullYear(), 4)}`
+                + ` ${pad(self.getFullMonthName())} ${pad(self.getDate())} ${t}`;
+            break;
+        case 'R':
+            const differenceSeconds: number = Math.trunc(((+new Date) - (+self.getTime())) / 1_000),
+                positive: boolean = differenceSeconds >= 0;
+            if (differenceSeconds === 0) {
+                strx = 'now';
+            } else if (Math.abs(differenceSeconds) < 60) {
+                strx = `${Math.abs(differenceSeconds)} seconds ${positive ? 'ago' : 'from now'}`;
+            } else if (Math.abs(differenceSeconds) < 3600) {
+                const minutes = Math.abs(Math.trunc(differenceSeconds / 60));
+                strx = `${minutes} minute${minutes !== 1 ? 's' : ''} ${positive ? 'ago' : 'from now'}`;
+            } else if (Math.abs(differenceSeconds) < 86400) {
+                const hours = Math.abs(Math.trunc(differenceSeconds / 3600));
+                strx = `${hours} hour${hours !== 1 ? 's' : ''} ${positive ? 'ago' : 'from now'}`;
+            } else {
+                const days = Math.abs(Math.trunc(differenceSeconds / 86400));
+                strx = `${days} day${days !== 1 ? 's' : ''} ${positive ? 'ago' : 'from now'}`;
+            }
+            break;
+        default:
+            throw new Error(`${f} is not valid`);
+    }
+    return `<time datetime="${date.toISOString()}" data-format="${f}" title="${this.toString()}">${strx}</time>`;
 };
 // builtin-proxy
 /**
