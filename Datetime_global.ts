@@ -5,6 +5,7 @@ import {Temporal} from '@js-temporal/polyfill';
 
 export type Datetime_global = {
     time: Temporal.ZonedDateTime,
+    [Symbol.toStringTag]: string,
     toString(this: Datetime_global): string,
     getTime(this: Datetime_global): number,
     valueOf(this: Datetime_global): number,
@@ -12,45 +13,65 @@ export type Datetime_global = {
     toHTML(this: Datetime_global): string,
     toHTMLString(this: Datetime_global): string,
     // convertion utils
-    toDate(): Date,
+    toDate(this: Datetime_global): Date,
     toTimezone(this: Datetime_global, timezoneId: Temporal.TimeZoneLike): Datetime_global,
     // builtin-proxy
-    getDay(): number;
-    getYear(): number;
-    getFullYear(): number;
-    getMonth(): number;
-    getDate(): number;
-    getHours(): number;
-    getMinutes(): number;
-    getSeconds(): number;
-    getMilliseconds(): number;
+    getDay(this: Datetime_global): number;
+    getYear(this: Datetime_global): number;
+    getFullYear(this: Datetime_global): number;
+    getMonth(this: Datetime_global): number;
+    getDate(this: Datetime_global): number;
+    getHours(this: Datetime_global): number;
+    getMinutes(this: Datetime_global): number;
+    getSeconds(this: Datetime_global): number;
+    getMilliseconds(this: Datetime_global): number;
+    // setters
+    setFullYear(this: Datetime_global, fullYear: number, month?: number, date?: number): number
 
     // builtin-proxy-UTC
-    getUTCDay(): number;
-    getUTCYear(): number;
-    getUTCFullYear(): number;
-    getUTCMonth(): number;
-    getUTCDate(): number;
-    getUTCHours(): number;
-    getUTCMinutes(): number;
-    getUTCSeconds(): number;
-    getUTCMilliseconds(): number;
-    getTimezoneOffset(): number;
-    toJSON(): string;
-
+    getUTCDay(this: Datetime_global): number;
+    getUTCYear(this: Datetime_global): number;
+    getUTCFullYear(this: Datetime_global): number;
+    getUTCMonth(this: Datetime_global): number;
+    getUTCDate(this: Datetime_global): number;
+    getUTCHours(this: Datetime_global): number;
+    getUTCMinutes(this: Datetime_global): number;
+    getUTCSeconds(this: Datetime_global): number;
+    getUTCMilliseconds(this: Datetime_global): number;
+    getTimezoneOffset(this: Datetime_global): number;
+    toJSON(this: Datetime_global): string;
+    // setters
+    setUTCFullYear(this: Datetime_global, fullYear: number, month?: number, date?: number): number;
+    setUTCHours(this: Datetime_global, hours: number, minutes?: number, seconds?: number, milliseconds?: number): number;
     // custom
-    getDayNumberWeek(): number;
-    getDayNumberMonth(): number;
-    getDayNumber(): number;
-    getDayName(): string;
-    getMonthName(): string;
-    getFullMonthName(): string;
-    getFullDayName(): string;
+    getDayNumberWeek(this: Datetime_global): number;
+    getDayNumberMonth(this: Datetime_global): number;
+    getDayNumber(this: Datetime_global): number;
+    getDayName(this: Datetime_global): string;
+    getMonthName(this: Datetime_global): string;
+    getFullMonthName(this: Datetime_global): string;
+    getFullDayName(this: Datetime_global): string;
 
-    toHTMLDiscordString(this: Datetime_global, f: "R" | "T" | "t" | "f" | "F" | "D" | "d"): string
+    toHTMLDiscordString(this: Datetime_global, f: "R" | "T" | "t" | "f" | "F" | "D" | "d"): string;
+    setNanoseconds(this: Datetime_global, nanoseconds: bigint): bigint;
+    getNanoseconds(this: Datetime_global): bigint;
+    getUTCNanoseconds(this: Datetime_global): bigint;
+    toDatetime_local(this: Datetime_global): Datetime_local;
+
+    toISOString(this: Datetime_global): string;
+    toTemporalZonedDateTime(): Temporal.ZonedDateTime;
+
+    setMonth(this: Datetime_global, month: number, date?: number): number;
+    setDate(this: Datetime_global, date: number): number
+    setHours(this: Datetime_global, hours: number, minutes?: number, seconds?: number, milliseconds?: number): number;
+    setMinutes(this: Datetime_global, minutes: number, seconds?: number, milliseconds?: number): number;
+    setSeconds(this: Datetime_global, seconds: number, milliseconds?: number): number;
+    setMilliseconds(this: Datetime_global, milliseconds: number): number;
 };
 
 interface Datetime_global_constructor {
+    prototype: Datetime_global;
+
     new(from?: Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local | bigint | number | undefined,
         timezoneId?: Temporal.TimeZoneLike): Datetime_global,
 
@@ -81,7 +102,7 @@ interface Datetime_global_constructor {
 
     getUTCOffset(offset: number): string,
 
-    htmlToCurrentTime(timetags: HTMLTimeElement[]): void
+    htmlToCurrentTime(timetags: HTMLTimeElement[]): void,
 }
 
 /**
@@ -113,7 +134,7 @@ export const Datetime_global: Datetime_global_constructor = function (
         timestamp = from;
         isBigInt = true;
     } else {
-        timestamp = +from;
+        timestamp = Math.trunc(+from);
     }
     const time: Temporal.ZonedDateTime = new Temporal.ZonedDateTime(
         BigInt(timestamp) * (isBigInt ? 1n : 1_000_000n),
@@ -222,7 +243,7 @@ Datetime_global.prototype.toString = function (this: Datetime_global): string {
     const self: Datetime_global = this, pad = function (strx: string | any, number: number = 2): string {
         return String(strx).padStart(Number(number), '0');
     };
-    const offset: string = Datetime_local.getUTCOffset(self.getTimezoneOffset()),
+    const offset: string = Datetime_global.getUTCOffset(self.getTimezoneOffset()),
         string: string = `${self.getDayName()} ${self.getFullMonthName()} ${pad(self.getDate())}`,
         time: string = `${pad(self.getHours())}:${pad(self.getMinutes())}:${pad(self.getSeconds())}`;
     return `${string} ${pad(self.getFullYear(), 4)} ${time} ${offset} (${self.time.timeZoneId})`;
@@ -445,20 +466,25 @@ Datetime_global.prototype.getUTCMilliseconds = function (this: Datetime_global):
 Datetime_global.prototype.getTimezoneOffset = function (this: Datetime_global): number {
     return -Math.round((Number(this.time.offsetNanoseconds) / 1e9) / 60);
 };
-Datetime_global.prototype.toDatetime_local = function () {
+/**
+ * converts to `Datetime_local`
+ * @deprecated
+ * @returns {Datetime_local}
+ */
+Datetime_global.prototype.toDatetime_local = function (this: Datetime_global): Datetime_local {
     return new Datetime_local(this.time.epochMilliseconds);
 };
 /**
  * a proxy for `Date.prototype.toISOString`
  * @returns {number}
  */
-Datetime_global.prototype.toISOString = function (): string {
+Datetime_global.prototype.toISOString = function (this: Datetime_global): string {
     return (new Date(this.time.epochMilliseconds)).toISOString();
 };
 Datetime_global.prototype.toJSON = function (): string {
     return this.time.toJSON();
 };
-Datetime_global.prototype.setFullYear = function (fullYear: number, month?: number, date?: number): number {
+Datetime_global.prototype.setFullYear = function (this: Datetime_global, fullYear: number, month?: number, date?: number): number {
     const nanosecond: bigint = BigInt(this.time.nanosecond),
         datetime: Date = new Date(this.time.epochMilliseconds);
     month = arguments.length > 1 ? month : datetime.getMonth();
@@ -468,14 +494,16 @@ Datetime_global.prototype.setFullYear = function (fullYear: number, month?: numb
     this.time = new Temporal.ZonedDateTime(((returnValue * 1_000_000n) + nanosecond), this.time.timeZoneId);
     return Number(returnValue);
 };
-Datetime_global.prototype.setMonth = function (month: number, date?: number): number {
-    date = arguments.length > 1 ? date : this.getDate();
-    return this.setFullYear(this.getFullYear(), month, date);
+Datetime_global.prototype.setMonth = function (this: Datetime_global, month: number, date?: number): number {
+    const self: Date = new Date(this.time.epochMilliseconds);
+    date = arguments.length > 1 ? date : self.getDate();
+    return this.setFullYear(self.getFullYear(), month, date);
 };
-Datetime_global.prototype.setDate = function (date: number): number {
-    return this.setFullYear(this.getFullYear(), this.getMonth(), date);
+Datetime_global.prototype.setDate = function (this: Datetime_global, date: number): number {
+    const self: Date = new Date(this.time.epochMilliseconds);
+    return this.setFullYear(self.getFullYear(), self.getMonth(), date);
 };
-Datetime_global.prototype.setHours = function (hours: number, minutes?: number, seconds?: number, milliseconds?: number): number {
+Datetime_global.prototype.setHours = function (this: Datetime_global, hours: number, minutes?: number, seconds?: number, milliseconds?: number): number {
     const nanosecond: bigint = BigInt(this.time.nanosecond), date: Date = new Date(this.time.epochMilliseconds);
     minutes = arguments.length > 1 ? minutes : date.getMinutes();
     seconds = arguments.length > 2 ? seconds : date.getSeconds();
@@ -487,20 +515,23 @@ Datetime_global.prototype.setHours = function (hours: number, minutes?: number, 
         this.time.timeZoneId);
     return Number(returnValue);
 };
-Datetime_global.prototype.setMinutes = function (minutes: number, seconds?: number, milliseconds?: number): number {
-    seconds = arguments.length > 1 ? seconds : this.getSeconds();
-    milliseconds = arguments.length > 2 ? milliseconds : this.getMilliseconds();
-    return this.setHours(this.getHours(), minutes, seconds, milliseconds);
+Datetime_global.prototype.setMinutes = function (this: Datetime_global, minutes: number, seconds?: number, milliseconds?: number): number {
+    const self: Date = new Date(this.time.epochMilliseconds);
+    seconds = arguments.length > 1 ? seconds : self.getSeconds();
+    milliseconds = arguments.length > 2 ? milliseconds : self.getMilliseconds();
+    return this.setHours(self.getHours(), minutes, seconds, milliseconds);
 };
-Datetime_global.prototype.setSeconds = function (seconds: number, milliseconds?: number): number {
-    milliseconds = arguments.length > 1 ? milliseconds : this.getMilliseconds();
-    return this.setHours(this.getHours(), this.getMinutes(), seconds, milliseconds);
+Datetime_global.prototype.setSeconds = function (this: Datetime_global, seconds: number, milliseconds?: number): number {
+    const self: Date = new Date(this.time.epochMilliseconds);
+    milliseconds = arguments.length > 1 ? milliseconds : self.getMilliseconds();
+    return this.setHours(self.getHours(), self.getMinutes(), seconds, milliseconds);
 };
-Datetime_global.prototype.setMilliseconds = function (milliseconds: number): number {
-    return this.setHours(this.getHours(), this.getMinutes(), this.getSeconds(), milliseconds);
+Datetime_global.prototype.setMilliseconds = function (this: Datetime_global, milliseconds: number): number {
+    const self: Date = new Date(this.time.epochMilliseconds);
+    return this.setHours(self.getHours(), self.getMinutes(), self.getSeconds(), milliseconds);
 };
 // UTC
-Datetime_global.prototype.setUTCFullYear = function (fullYear: number, month?: number, date?: number): number {
+Datetime_global.prototype.setUTCFullYear = function (this: Datetime_global, fullYear: number, month?: number, date?: number): number {
     const nanosecond: bigint = BigInt(this.time.nanosecond),
         datetime: Date = new Date(this.time.epochMilliseconds);
     month = arguments.length > 1 ? month : datetime.getUTCMonth();
@@ -510,7 +541,7 @@ Datetime_global.prototype.setUTCFullYear = function (fullYear: number, month?: n
     this.time = new Temporal.ZonedDateTime(((returnValue * 1_000_000n) + nanosecond), this.time.timeZoneId);
     return Number(returnValue);
 };
-Datetime_global.prototype.setUTCHours = function (hours: number, minutes?: number, seconds?: number, milliseconds?: number): number {
+Datetime_global.prototype.setUTCHours = function (this: Datetime_global, hours: number, minutes?: number, seconds?: number, milliseconds?: number): number {
     const nanosecond: bigint = BigInt(this.time.nanosecond), date: Date = new Date(this.time.epochMilliseconds);
     minutes = arguments.length > 1 ? minutes : date.getUTCMinutes();
     seconds = arguments.length > 2 ? seconds : date.getUTCSeconds();
@@ -522,33 +553,6 @@ Datetime_global.prototype.setUTCHours = function (hours: number, minutes?: numbe
         this.time.timeZoneId);
     return Number(returnValue);
 };
-Datetime_global.prototype.toLocaleString = function (locales?: Intl.LocalesArgument, options?: Intl.DateTimeFormatOptions): string {
-    const date: Date = new Date(this.time.epochMilliseconds);
-    if (arguments.length === 0) {
-        return date.toLocaleString();
-    } else if (arguments.length === 1) {
-        return date.toLocaleString(locales);
-    }
-    return date.toLocaleString(locales, options);
-};
-Datetime_global.prototype.toLocaleDateString = function (locales?: Intl.LocalesArgument, options?: Intl.DateTimeFormatOptions): string {
-    const date: Date = new Date(this.time.epochMilliseconds);
-    if (arguments.length === 0) {
-        return date.toLocaleDateString();
-    } else if (arguments.length === 1) {
-        return date.toLocaleDateString(locales);
-    }
-    return date.toLocaleDateString(locales, options);
-};
-Datetime_global.prototype.toLocaleTimeString = function (locales?: Intl.LocalesArgument, options?: Intl.DateTimeFormatOptions): string {
-    const date: Date = new Date(this.time.epochMilliseconds);
-    if (arguments.length === 0) {
-        return date.toLocaleTimeString();
-    } else if (arguments.length === 1) {
-        return date.toLocaleTimeString(locales);
-    }
-    return date.toLocaleTimeString(locales, options);
-};
 Datetime_global.prototype.toTemporalZonedDateTime = function (): Temporal.ZonedDateTime {
     return this.time;
 };
@@ -557,6 +561,27 @@ Datetime_global.monthnames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', '
 Datetime_global.daynamesFull = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 Datetime_global.monthnamesFull = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 // custom
+/**
+ * sets the Nanoseconds
+ * @returns {bigint}
+ */
+Datetime_global.prototype.setNanoseconds = function (this: Datetime_global, nanoseconds: bigint): bigint {
+    return BigInt((this.time = new Temporal.ZonedDateTime(this.time.epochNanoseconds + BigInt(nanoseconds), this.time.timeZoneId)).nanosecond);
+};
+/**
+ * gets the Nanoseconds
+ * @returns {bigint}
+ */
+Datetime_global.prototype.getNanoseconds = function (this: Datetime_global): bigint {
+    return BigInt(this.time.nanosecond);
+};
+/**
+ * gets the Nanoseconds
+ * @returns {bigint}
+ */
+Datetime_global.prototype.getUTCNanoseconds = function (this: Datetime_global): bigint {
+    return BigInt(this.time.nanosecond);
+};
 /**
  * a proxy for `Date.prototype.getDay`
  * @returns {number}

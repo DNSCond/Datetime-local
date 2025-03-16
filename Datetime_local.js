@@ -14,6 +14,7 @@
  * @returns {string}
  * @constructor
  * @function
+ * @deprecated use `Datetime_global` instead
  */
 export const Datetime_local = function (year, month = 0, date = 1, hour = 0, minute = 0, second = 0, ms = 0) {
     let date_time = new Date();

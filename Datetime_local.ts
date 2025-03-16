@@ -170,6 +170,7 @@ interface Datetime_local_constructor {
  * @returns {string}
  * @constructor
  * @function
+ * @deprecated use `Datetime_global` instead
  */
 export const Datetime_local: Datetime_local_constructor = function (
     this: Datetime_local, year: number | string | undefined | Date | Datetime_local,

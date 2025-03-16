@@ -1,12 +1,11 @@
+// import the library
 import {Datetime_global} from "./Datetime_global.js";
-import {Temporal} from "@js-temporal/polyfill";
-// tests are written here
-
-// the Datetime_global is very specific in its construction. meaning Datetime_global.fromComponentsUTC is used to
-// construct a Datetime_global, the components are to be specified in UTC timwezone
-const timestampBigIntUTC = Datetime_global.fromComponentsUTC(2024, 6, 25, 14, 30, 0, 0, 0n);
-// construct the class
-let time = new Datetime_global(timestampBigIntUTC);
+// the Datetime_global is very specific in its construction.
+// meaning Datetime_global.fromComponentsUTC is used to
+// construct a Datetime_global, the components are to be specified in UTC timezone
+const timestampBigIntUTC = Datetime_global.fromComponentsUTC(2024, 6, 25, 14, 30, 0, 0, 0);
+// construct the `Datetime_global`
+const time = new Datetime_global(timestampBigIntUTC);
 
 // return a string like Tue Jun 25 2024 14:30:00 UTC+0000 (UTC) <time datetime="2024-06-25T14:30:00.000Z">Tue Jun 25 2024 14:30:00 UTC+0000 (UTC)</time>
 // in your local time
@@ -24,62 +23,10 @@ console.log(time.toTimezone('Asia/Tokyo').toHTMLString());
 console.log(time.toTimezone('UTC').toHTMLString());
 // an random timezone
 console.log(time.toTimezone('America/Anchorage').toLocaleString());
-// json "2024-06-25T06:30:00-08:00[America/Anchorage]"
+
 console.log(JSON.stringify(time.toTimezone('America/Anchorage')));
-time = new Datetime_global();
-console.log(time.toTimezone('America/New_York').toHTMLDiscordString('t') + ',<br>');
-console.log(time.toTimezone('UTC').toHTMLDiscordString('T') + ',<br>');
-console.log(time.toTimezone('America/Anchorage').toHTMLDiscordString('d') + ',<br>');
-console.log(time.toTimezone('America/Anchorage').toHTMLDiscordString('D') + ',<br>');
-console.log(time.toTimezone('Asia/Tokyo').toHTMLDiscordString('f') + ',<br>');
-console.log(time.toHTMLDiscordString('F') + ',<br>');
-console.log(time.toHTMLDiscordString('R'));
+// json "2024-06-25T06:30:00-08:00[America/Anchorage]"
 
-console.log((new Datetime_global()).toHTMLString());
-// if timeLeft === timeRight, then this expression should also be true, always
-const timeLeft = (new Datetime_global(new Date('2024'))).toString(),
-    timeRight = Datetime_global(new Date('2024'));
-console.log(timeLeft === timeRight);
-// this is because Datetime_global.prototype.toString.call is called when Datetime_global is called without new
-
-// this works, assuming an object with a key of `time` points to an object with an object with `epochNanoseconds` which is a bigint gets passed
-time = Temporal.ZonedDateTime.from({
-    year: 2024,
-    month: 7,
-    day: 15,
-    hour: 14,
-    minute: 25,
-    second: 50,
-    nanosecond: 50550400,
-    timeZone: Temporal.Now.timeZoneId(),
-});
-console.log(Datetime_global.prototype.toString.call(Object.assign({time}, Datetime_global.prototype)));
-console.log(Datetime_global.prototype.toJSON.call({time}));
-
-console.log(Datetime_global.prototype.toJSON.call(new Datetime_global(Datetime_global.fromComponentsUTC(
-    2024, 7, 15, 14, 25, 50, 0, 50550400n,
-))));
-
-function chunk(array) {
-    let index = 0, temporary = [];
-    const result = [];
-    for (const arrayElement of Array.from(array)) {
-        temporary.push(arrayElement);
-        if (((++index) % 3) === 0) {
-            result.push(temporary);
-            temporary = [];
-        }
-    }
-    return result;
-}
-
-function underscoreNumber(n) {
-    return chunk(Array.from(BigInt(n).toString()).reverse()).map(function (e) {
-        return e.reverse().join().replace(/\D/g, '');
-    }).reverse().join().replace(/,/g, '_');
-}
-
-const zerons = Datetime_global.zerons();
-console.log(underscoreNumber(zerons), zerons);
-
+time.setHours(15); // its a bug that this sets localtime hours
+console.log(time.toString());
 console.log();
