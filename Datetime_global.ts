@@ -466,6 +466,7 @@ Datetime_global.prototype.getUTCMilliseconds = function (this: Datetime_global):
 Datetime_global.prototype.getTimezoneOffset = function (this: Datetime_global): number {
     return -Math.round((Number(this.time.offsetNanoseconds) / 1e9) / 60);
 };
+
 /**
  * converts to `Datetime_local`
  * @deprecated
@@ -484,32 +485,32 @@ Datetime_global.prototype.toISOString = function (this: Datetime_global): string
 Datetime_global.prototype.toJSON = function (): string {
     return this.time.toJSON();
 };
-Datetime_global.prototype.setFullYear = function (this: Datetime_global, fullYear: number, month?: number, date?: number): number {
-    const nanosecond: bigint = BigInt(this.time.nanosecond),
-        datetime: Date = new Date(this.time.epochMilliseconds);
-    month = arguments.length > 1 ? month : datetime.getMonth();
-    date = arguments.length > 2 ? date : datetime.getDate();
+/*Datetime_global.prototype.setFullYear = function (this: Datetime_global, fullYear: number, month?: number, date?: number): number {
+    const nanosecond: bigint = BigInt(this.time.nanosecond), datetime: Date = new Date(this.time.epochMilliseconds);
+    const utc: Temporal.ZonedDateTime = new Temporal.ZonedDateTime(this.time.epochNanoseconds, 'UTC');
+    month = arguments.length > 1 ? month : utc.month - 1; date = arguments.length > 2 ? date : utc.day;
 
-    const returnValue: bigint = BigInt(datetime.setFullYear(fullYear, month as number, date as number));
+    const returnValue: bigint = BigInt(datetime.setUTCFullYear(fullYear, month as number, date as number));
     this.time = new Temporal.ZonedDateTime(((returnValue * 1_000_000n) + nanosecond), this.time.timeZoneId);
     return Number(returnValue);
 };
 Datetime_global.prototype.setMonth = function (this: Datetime_global, month: number, date?: number): number {
     const self: Date = new Date(this.time.epochMilliseconds);
-    date = arguments.length > 1 ? date : self.getDate();
-    return this.setFullYear(self.getFullYear(), month, date);
+    date = arguments.length > 1 ? date : self.getUTCDate();
+    return this.setFullYear(self.getUTCFullYear(), month, date);
 };
 Datetime_global.prototype.setDate = function (this: Datetime_global, date: number): number {
     const self: Date = new Date(this.time.epochMilliseconds);
-    return this.setFullYear(self.getFullYear(), self.getMonth(), date);
-};
+return this.setFullYear(self.getUTCFullYear(), self.getUTCMonth(), date);};*/
 Datetime_global.prototype.setHours = function (this: Datetime_global, hours: number, minutes?: number, seconds?: number, milliseconds?: number): number {
     const nanosecond: bigint = BigInt(this.time.nanosecond), date: Date = new Date(this.time.epochMilliseconds);
-    minutes = arguments.length > 1 ? minutes : date.getMinutes();
-    seconds = arguments.length > 2 ? seconds : date.getSeconds();
-    milliseconds = arguments.length > 3 ? milliseconds : date.getMilliseconds();
+    const utc: Temporal.ZonedDateTime = new Temporal.ZonedDateTime(this.time.epochNanoseconds, 'UTC');
+    minutes = arguments.length > 1 ? minutes : utc.minute;
+    seconds = arguments.length > 2 ? seconds : utc.second;
+    milliseconds = arguments.length > 3 ? milliseconds : utc.millisecond;
 
-    const returnValue: bigint = BigInt(date.setHours(hours, minutes as number, seconds as number, milliseconds as number));
+    const returnValue: bigint = BigInt(date.setUTCHours(hours,
+        (minutes as number) + this.getTimezoneOffset(), seconds as number, milliseconds as number));
     this.time = new Temporal.ZonedDateTime(
         ((returnValue * 1_000_000n) + nanosecond),
         this.time.timeZoneId);
@@ -532,8 +533,7 @@ Datetime_global.prototype.setMilliseconds = function (this: Datetime_global, mil
 };
 // UTC
 Datetime_global.prototype.setUTCFullYear = function (this: Datetime_global, fullYear: number, month?: number, date?: number): number {
-    const nanosecond: bigint = BigInt(this.time.nanosecond),
-        datetime: Date = new Date(this.time.epochMilliseconds);
+    const nanosecond: bigint = BigInt(this.time.nanosecond), datetime: Date = new Date(this.time.epochMilliseconds);
     month = arguments.length > 1 ? month : datetime.getUTCMonth();
     date = arguments.length > 2 ? date : datetime.getUTCDate();
 

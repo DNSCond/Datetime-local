@@ -373,44 +373,46 @@ Datetime_global.prototype.toJSON = function () {
 };
 Datetime_global.prototype.setFullYear = function (fullYear, month, date) {
     const nanosecond = BigInt(this.time.nanosecond), datetime = new Date(this.time.epochMilliseconds);
-    month = arguments.length > 1 ? month : datetime.getMonth();
-    date = arguments.length > 2 ? date : datetime.getDate();
-    const returnValue = BigInt(datetime.setFullYear(fullYear, month, date));
+    const utc = new Temporal.ZonedDateTime(this.time.epochNanoseconds, 'UTC');
+    month = arguments.length > 1 ? month : utc.month - 1;
+    date = arguments.length > 2 ? date : utc.day;
+    const returnValue = BigInt(datetime.setUTCFullYear(fullYear, month, date));
     this.time = new Temporal.ZonedDateTime(((returnValue * 1000000n) + nanosecond), this.time.timeZoneId);
     return Number(returnValue);
 };
 Datetime_global.prototype.setMonth = function (month, date) {
     const self = new Date(this.time.epochMilliseconds);
-    date = arguments.length > 1 ? date : self.getDate();
-    return this.setFullYear(self.getFullYear(), month, date);
+    date = arguments.length > 1 ? date : self.getUTCDate();
+    return this.setFullYear(self.getUTCFullYear(), month, date);
 };
 Datetime_global.prototype.setDate = function (date) {
     const self = new Date(this.time.epochMilliseconds);
-    return this.setFullYear(self.getFullYear(), self.getMonth(), date);
+    return this.setFullYear(self.getUTCFullYear(), self.getUTCMonth(), date);
 };
 Datetime_global.prototype.setHours = function (hours, minutes, seconds, milliseconds) {
     const nanosecond = BigInt(this.time.nanosecond), date = new Date(this.time.epochMilliseconds);
-    minutes = arguments.length > 1 ? minutes : date.getMinutes();
-    seconds = arguments.length > 2 ? seconds : date.getSeconds();
-    milliseconds = arguments.length > 3 ? milliseconds : date.getMilliseconds();
-    const returnValue = BigInt(date.setHours(hours, minutes, seconds, milliseconds));
+    const utc = new Temporal.ZonedDateTime(this.time.epochNanoseconds, 'UTC');
+    minutes = arguments.length > 1 ? minutes : utc.minute;
+    seconds = arguments.length > 2 ? seconds : utc.second;
+    milliseconds = arguments.length > 3 ? milliseconds : utc.millisecond;
+    const returnValue = BigInt(date.setUTCHours(hours, minutes + this.getTimezoneOffset(), seconds, milliseconds));
     this.time = new Temporal.ZonedDateTime(((returnValue * 1000000n) + nanosecond), this.time.timeZoneId);
     return Number(returnValue);
 };
 Datetime_global.prototype.setMinutes = function (minutes, seconds, milliseconds) {
     const self = new Date(this.time.epochMilliseconds);
-    seconds = arguments.length > 1 ? seconds : self.getSeconds();
-    milliseconds = arguments.length > 2 ? milliseconds : self.getMilliseconds();
-    return this.setHours(self.getHours(), minutes, seconds, milliseconds);
+    seconds = arguments.length > 1 ? seconds : self.getUTCSeconds();
+    milliseconds = arguments.length > 2 ? milliseconds : self.getUTCMilliseconds();
+    return this.setHours(self.getUTCHours(), minutes, seconds, milliseconds);
 };
 Datetime_global.prototype.setSeconds = function (seconds, milliseconds) {
     const self = new Date(this.time.epochMilliseconds);
-    milliseconds = arguments.length > 1 ? milliseconds : self.getMilliseconds();
-    return this.setHours(self.getHours(), self.getMinutes(), seconds, milliseconds);
+    milliseconds = arguments.length > 1 ? milliseconds : self.getUTCMilliseconds();
+    return this.setHours(self.getUTCHours(), self.getUTCMinutes(), seconds, milliseconds);
 };
 Datetime_global.prototype.setMilliseconds = function (milliseconds) {
     const self = new Date(this.time.epochMilliseconds);
-    return this.setHours(self.getHours(), self.getMinutes(), self.getSeconds(), milliseconds);
+    return this.setHours(self.getUTCHours(), self.getUTCMinutes(), self.getUTCSeconds(), milliseconds);
 };
 // UTC
 Datetime_global.prototype.setUTCFullYear = function (fullYear, month, date) {
