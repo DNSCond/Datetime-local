@@ -83,23 +83,47 @@ Datetime_global.parse_strict = function (string) {
     return Temporal.ZonedDateTime.from(string);
 };
 /**
- * The Datetime_local.now() static method returns the number of nanoseconds elapsed since the epoch, which is defined as the midnight at the beginning of January 1, 1970, UTC
+ * The Datetime_global.now() static method returns the number of nanoseconds elapsed since the epoch, which is defined as the midnight at the beginning of January 1, 1970, UTC
  * @returns {bigint} the number of nanoseconds elapsed since the epoch, which is defined as the midnight at the beginning of January 1, 1970, UTC
  */
 Datetime_global.now = function () {
     return Temporal.Now.instant().epochNanoseconds;
 };
+/**
+ * returns milliseconds since the epoch with sub-second precision set to 0.
+ * @returns {number}
+ */
 Datetime_global.zeroms = function () {
     return (new Date).setMilliseconds(0);
 };
+/**
+ * returns nanoseconds since the epoch with sub-second precision set to 0.
+ * @returns {bigint}
+ */
 Datetime_global.zerons = function () {
     return BigInt(Datetime_global.zeroms()) * 1000000n;
 };
+/**
+ * parses dateString into a valid date, supports english only
+ * @param dateString the string to parse
+ * @param this_parserOnly if falsy then uses Date.parse as a fallback, if truthy then it only parses the current date.
+ * default `true`
+ * @returns {number} the number of milliseconds elapsed since the epoch, or NaN on failure
+ */
 Datetime_global.parse = Datetime_local.parse;
 Datetime_global.prototype[Symbol.toStringTag] = Datetime_global.name;
+/**
+ * converts this Datetime_global to Date
+ * @returns {Date} the Date with millisecond precision. sub millisecond precision is lost
+ */
 Datetime_global.prototype.toDate = function () {
     return new Date(this.time.epochMilliseconds);
 };
+/**
+ * converts this Datetime_global toanother timezone, preversing its instant in history (hiostory)
+ * @param timezoneId the Temporal TimezoneId
+ * @returns {Datetime_global} the new Object in the selected Timezone
+ */
 Datetime_global.prototype.toTimezone = function (timezoneId) {
     return new Datetime_global(this.time.epochNanoseconds, timezoneId);
 };
@@ -117,6 +141,12 @@ Datetime_global.prototype.valueOf = function () {
 Datetime_global.prototype.getTime = function () {
     return this.valueOf();
 };
+/**
+ * sets the timestamp of this Datetime_global instance. if a BigInt is passed directly then its the nanoseconds since the epoch. otherwise its the milliseconds
+ * @param timestamp if a BigInt is passed directly then its the nanoseconds since the epoch. otherwise its the milliseconds, all values are passed into BigInt()
+ * @returns {number} the milliseconds since the epoch
+ * @deprecated this method is modifying. consider using the constructor instead
+ */
 Datetime_global.prototype.setTime = function (timestamp) {
     this.time = new Temporal.ZonedDateTime(BigInt(timestamp) * (((typeof timestamp) === 'bigint') ? 1n : 1000000n), this.time.timeZoneId);
     return this.time.epochMilliseconds;
@@ -368,9 +398,20 @@ Datetime_global.prototype.toDatetime_local = function () {
 Datetime_global.prototype.toISOString = function () {
     return (new Date(this.time.epochMilliseconds)).toISOString();
 };
+/**
+ * returns this.time's toJSON result. which should be Temporal.ZonedDateTime.prototype.toJSON.
+ * @returns {string} this.time's toJSON result. which should be Temporal.ZonedDateTime.prototype.toJSON.
+ */
 Datetime_global.prototype.toJSON = function () {
     return this.time.toJSON();
 };
+/**
+ * sets the full year (modifying the object in place), also warps around
+ * @param fullYear the year treated as is
+ * @param month the zero indexed month
+ * @param date the day of the month
+ * @returns {number} milliseconds of the new timestamp
+ */
 Datetime_global.prototype.setFullYear = function (fullYear, month, date) {
     date = arguments.length > 1 ? date : this.time.day;
     month = arguments.length > 2 ? month : this.time.month;
@@ -410,15 +451,33 @@ Datetime_global.prototype.setFullYear = function (fullYear, month, date) {
     }
     return (this.time = time).epochMilliseconds;
 };
+/**
+ * sets the month (modifying the object in place), also warps around
+ * @param month the zero indexed month
+ * @param date the day of the month
+ * @returns {number} milliseconds of the new timestamp
+ */
 Datetime_global.prototype.setMonth = function (month, date) {
-    const self = new Date(this.time.epochMilliseconds);
-    date = arguments.length > 1 ? date : self.getUTCDate();
-    return this.setFullYear(self.getUTCFullYear(), month, date);
+    date = arguments.length > 1 ? date : this.getDate();
+    return this.setFullYear(this.getFullYear(), month, date);
 };
+/**
+ * sets the day of the month (modifying the object in place), also warps around
+ * @param date the day of the month
+ * @returns {number} milliseconds of the new timestamp
+ */
 Datetime_global.prototype.setDate = function (date) {
-    const self = new Date(this.time.epochMilliseconds);
-    return this.setFullYear(self.getUTCFullYear(), self.getUTCMonth(), date);
+    return this.setFullYear(this.getFullYear(), this.getMonth(), date);
 };
+/**
+ * sets the hours (modifying the object in place), also warps around.
+ * sub milliseconds precision cannot be achieved though this function
+ * @param hours the hours
+ * @param minutes the minutes
+ * @param seconds the seconds
+ * @param milliseconds the milliseconds
+ * @returns {number} milliseconds of the new timestamp
+ */
 Datetime_global.prototype.setHours = function (hours, minutes, seconds, milliseconds) {
     minutes = arguments.length > 1 ? minutes : this.time.minute;
     seconds = arguments.length > 2 ? seconds : this.time.second;
@@ -498,36 +557,77 @@ Datetime_global.prototype.setHours = function (hours, minutes, seconds, millisec
     }
     return (this.time = time).epochMilliseconds;
 };
+/**
+ * sets the minutes (modifying the object in place), also warps around.
+ * sub milliseconds precision cannot be achieved though this function
+ * @param minutes the minutes
+ * @param seconds the seconds
+ * @param milliseconds the milliseconds
+ * @returns {number} milliseconds of the new timestamp
+ */
 Datetime_global.prototype.setMinutes = function (minutes, seconds, milliseconds) {
     seconds = arguments.length > 1 ? seconds : this.getSeconds();
     milliseconds = arguments.length > 2 ? milliseconds : this.getMilliseconds();
     return this.setHours(this.getHours(), minutes, seconds, milliseconds);
 };
+/**
+ * sets the seconds (modifying the object in place), also warps around.
+ * sub milliseconds precision cannot be achieved though this function
+ * @param seconds the seconds
+ * @param milliseconds the milliseconds
+ * @returns {number} milliseconds of the new timestamp
+ */
 Datetime_global.prototype.setSeconds = function (seconds, milliseconds) {
     milliseconds = arguments.length > 1 ? milliseconds : this.getMilliseconds();
     return this.setHours(this.getHours(), this.getMinutes(), seconds, milliseconds);
 };
+/**
+ * sets the milliseconds (modifying the object in place), also warps around.
+ * sub milliseconds precision cannot be achieved though this function
+ * @param milliseconds the milliseconds
+ * @returns {number} milliseconds of the new timestamp
+ */
 Datetime_global.prototype.setMilliseconds = function (milliseconds) {
     return this.setHours(this.getHours(), this.getMinutes(), this.getSeconds(), milliseconds);
 };
 // UTC
+/**
+ * sets the full year in UTC, using Date.prototype.setUTCYears internally
+ * @param fullYear the year treated as is
+ * @param month the zero indexed month
+ * @param date the day of the month
+ * @returns {number} milliseconds of the new timestamp
+ */
 Datetime_global.prototype.setUTCFullYear = function (fullYear, month, date) {
-    const nanosecond = BigInt(this.time.nanosecond), datetime = new Date(this.time.epochMilliseconds);
+    const nanosecond = BigInt(this.time.nanosecond), microsecond = BigInt(this.time.microsecond), datetime = new Date(this.time.epochMilliseconds);
     month = arguments.length > 1 ? month : datetime.getUTCMonth();
     date = arguments.length > 2 ? date : datetime.getUTCDate();
     const returnValue = BigInt(datetime.setUTCFullYear(fullYear, month, date));
-    this.time = new Temporal.ZonedDateTime(((returnValue * 1000000n) + nanosecond), this.time.timeZoneId);
+    this.time = new Temporal.ZonedDateTime(((returnValue * 1000000n) + microsecond + nanosecond), this.time.timeZoneId);
     return Number(returnValue);
 };
+/**
+ * sets the hours in UTC (modifying the object in place), also warps around.
+ * sub milliseconds precision cannot be achieved though this function
+ * @param hours the hours
+ * @param minutes the minutes
+ * @param seconds the seconds
+ * @param milliseconds the milliseconds
+ * @returns {number} milliseconds of the new timestamp
+ */
 Datetime_global.prototype.setUTCHours = function (hours, minutes, seconds, milliseconds) {
-    const nanosecond = BigInt(this.time.nanosecond), date = new Date(this.time.epochMilliseconds);
+    const nanosecond = BigInt(this.time.nanosecond), microsecond = BigInt(this.time.microsecond), date = new Date(this.time.epochMilliseconds);
     minutes = arguments.length > 1 ? minutes : date.getUTCMinutes();
     seconds = arguments.length > 2 ? seconds : date.getUTCSeconds();
     milliseconds = arguments.length > 3 ? milliseconds : date.getUTCMilliseconds();
     const returnValue = BigInt(date.setUTCHours(hours, minutes, seconds, milliseconds));
-    this.time = new Temporal.ZonedDateTime(((returnValue * 1000000n) + nanosecond), this.time.timeZoneId);
+    this.time = new Temporal.ZonedDateTime(((returnValue * 1000000n) + microsecond + nanosecond), this.time.timeZoneId);
     return Number(returnValue);
 };
+/**
+ * converts this `Datetime_global` instance to an `Temporal.ZonedDateTime` using its unique point in history
+ * @returns {Temporal.ZonedDateTime} an `Temporal.ZonedDateTime` with the same unique point in history
+ */
 Datetime_global.prototype.toTemporalZonedDateTime = function () {
     return this.time;
 };
@@ -622,9 +722,14 @@ Datetime_global.getUTCOffset = function (offset) {
     const minutes = String(absOffset % 60).padStart(2, "0");
     return `UTC${sign}${hours}${minutes}`;
 };
+/**
+ * converts all html `<time>` tags to an string representation of the `Datetime_global`
+ * using Date.parse to parse its time.dateTime attribute
+ * @param timetags preferably a result of document.querySelector.
+ */
 Datetime_global.htmlToCurrentTime = function (timetags = []) {
     Array.from(timetags).forEach(function (each) {
-        const tz = each.getAttribute('data-iana-timezone') ?? Temporal.Now.timeZoneId(), d = new Datetime_global(new Date(each.dateTime), tz);
+        const tz = each.getAttribute('data-iana-timezone') ?? Temporal.Now.timeZoneId(), d = new Datetime_global(Date.parse(each.dateTime), tz);
         each.innerText = d.toString();
     });
 };

@@ -99,7 +99,8 @@ console.log(time);
 
 ## known issues
 
-- most setter methods preform using localtime instead of specified time. (im not sure how to fix)
+- ~~most setter methods preform using localtime instead of specified time. (im not sure how to fix)~~ (fixed?)
+- half finish jsdoc
 
 ## License
 
