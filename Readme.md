@@ -93,7 +93,7 @@ console.log(time.toTimezone('America/Anchorage').toLocaleString());
 console.log(JSON.stringify(time.toTimezone('America/Anchorage')));
 // json "2024-06-25T06:30:00-08:00[America/Anchorage]"
 
-time.setHours(15); // its a bug that this sets localtime hours
+time.setHours(15);
 console.log(time);
 ```
 

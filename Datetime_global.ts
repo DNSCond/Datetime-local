@@ -244,7 +244,7 @@ Datetime_global.prototype.toString = function (this: Datetime_global): string {
         return String(strx).padStart(Number(number), '0');
     };
     const offset: string = Datetime_global.getUTCOffset(self.getTimezoneOffset()),
-        string: string = `${self.getDayName()} ${self.getFullMonthName()} ${pad(self.getDate())}`,
+        string: string = `${self.getDayName()} ${self.getMonthName()} ${pad(self.getDate())}`,
         time: string = `${pad(self.getHours())}:${pad(self.getMinutes())}:${pad(self.getSeconds())}`;
     return `${string} ${pad(self.getFullYear(), 4)} ${time} ${offset} (${self.time.timeZoneId})`;
 };
@@ -485,14 +485,44 @@ Datetime_global.prototype.toISOString = function (this: Datetime_global): string
 Datetime_global.prototype.toJSON = function (): string {
     return this.time.toJSON();
 };
-/*Datetime_global.prototype.setFullYear = function (this: Datetime_global, fullYear: number, month?: number, date?: number): number {
-    const nanosecond: bigint = BigInt(this.time.nanosecond), datetime: Date = new Date(this.time.epochMilliseconds);
-    const utc: Temporal.ZonedDateTime = new Temporal.ZonedDateTime(this.time.epochNanoseconds, 'UTC');
-    month = arguments.length > 1 ? month : utc.month - 1; date = arguments.length > 2 ? date : utc.day;
+Datetime_global.prototype.setFullYear = function (this: Datetime_global, fullYear: number, month?: number, date?: number): number {
+    date = arguments.length > 1 ? date : this.time.day;
+    month = arguments.length > 2 ? month : this.time.month;
+    const year = fullYear, try_date = {
+        year: Number(BigInt(year)),
+        day: Number(BigInt(date ?? 0)),
+        month: Number(BigInt(month ?? 0)),
+    }, self_time = this.time;
+    let time, indexed = 0;
+    while (true) {
+        if (++indexed > 800) {
+            throw new Error('Precaution recursion limit reached');
+        }
+        try {
+            time = self_time.with(try_date, {overflow: "reject"});
+            break;
+        } catch {
 
-    const returnValue: bigint = BigInt(datetime.setUTCFullYear(fullYear, month as number, date as number));
-    this.time = new Temporal.ZonedDateTime(((returnValue * 1_000_000n) + nanosecond), this.time.timeZoneId);
-    return Number(returnValue);
+            if (try_date.day > self_time.daysInMonth) {
+                try_date.month += Math.trunc(try_date.day / self_time.daysInMonth);
+                try_date.day = ((try_date.day - 1) % self_time.daysInMonth) + 1;
+            }
+            if (try_date.month > self_time.monthsInYear) {
+                try_date.year += Math.trunc(try_date.month / self_time.monthsInYear);
+                try_date.month = ((try_date.month - 1) % self_time.monthsInYear) + 1;
+            }
+            //
+            if (try_date.day < 1) {
+                try_date.month -= 1;
+                try_date.day += self_time.subtract({months: 1}).daysInMonth;
+            }
+            if (try_date.month < 1) {
+                try_date.year -= 1;
+                try_date.month += self_time.monthsInYear;
+            }
+        }
+    }
+    return (this.time = time).epochMilliseconds;
 };
 Datetime_global.prototype.setMonth = function (this: Datetime_global, month: number, date?: number): number {
     const self: Date = new Date(this.time.epochMilliseconds);
@@ -501,35 +531,99 @@ Datetime_global.prototype.setMonth = function (this: Datetime_global, month: num
 };
 Datetime_global.prototype.setDate = function (this: Datetime_global, date: number): number {
     const self: Date = new Date(this.time.epochMilliseconds);
-return this.setFullYear(self.getUTCFullYear(), self.getUTCMonth(), date);};*/
+    return this.setFullYear(self.getUTCFullYear(), self.getUTCMonth(), date);
+};
 Datetime_global.prototype.setHours = function (this: Datetime_global, hours: number, minutes?: number, seconds?: number, milliseconds?: number): number {
-    const nanosecond: bigint = BigInt(this.time.nanosecond), date: Date = new Date(this.time.epochMilliseconds);
-    const utc: Temporal.ZonedDateTime = new Temporal.ZonedDateTime(this.time.epochNanoseconds, 'UTC');
-    minutes = arguments.length > 1 ? minutes : utc.minute;
-    seconds = arguments.length > 2 ? seconds : utc.second;
-    milliseconds = arguments.length > 3 ? milliseconds : utc.millisecond;
+    minutes = arguments.length > 1 ? minutes : this.time.minute;
+    seconds = arguments.length > 2 ? seconds : this.time.second;
+    milliseconds = arguments.length > 3 ? milliseconds : this.time.millisecond;
 
-    const returnValue: bigint = BigInt(date.setUTCHours(hours,
-        (minutes as number) + this.getTimezoneOffset(), seconds as number, milliseconds as number));
-    this.time = new Temporal.ZonedDateTime(
-        ((returnValue * 1_000_000n) + nanosecond),
-        this.time.timeZoneId);
-    return Number(returnValue);
+    let time, indexed = 0;
+    const self_time = this.time, try_time = {
+        hour: Number(BigInt(hours ?? 0)),
+        minute: Number(BigInt(minutes ?? 0)),
+        second: Number(BigInt(seconds ?? 0)),
+        millisecond: Number(BigInt(milliseconds ?? 0)),
+        microsecond: self_time.microsecond,
+        nanosecond: self_time.nanosecond,
+        day: self_time.day,
+        month: self_time.month,
+        year: self_time.year,
+    };
+
+    while (true) {
+        if (++indexed > 800) {
+            throw new Error('Precaution recursion limit reached');
+        }
+        try {
+            time = self_time.with(try_time, {overflow: "reject"});
+            break;
+        } catch {
+            // Overflow/Underflow correction
+            if (try_time.millisecond >= 1000) {
+                try_time.second += Math.trunc(try_time.millisecond / 1000);
+                try_time.millisecond %= 1000;
+            }
+            if (try_time.second >= 60) {
+                try_time.minute += Math.trunc(try_time.second / 60);
+                try_time.second %= 60;
+            }
+            if (try_time.minute >= 60) {
+                try_time.hour += Math.trunc(try_time.minute / 60);
+                try_time.minute %= 60;
+            }
+            if (try_time.hour >= self_time.hoursInDay) {
+                try_time.day += Math.trunc(try_time.hour / self_time.hoursInDay);
+                try_time.hour %= self_time.hoursInDay;
+            }
+            if (try_time.day > self_time.daysInMonth) {
+                try_time.month += Math.trunc(try_time.day / self_time.daysInMonth);
+                try_time.day = ((try_time.day - 1) % self_time.daysInMonth) + 1;
+            }
+            if (try_time.month > self_time.monthsInYear) {
+                try_time.year += Math.trunc(try_time.month / self_time.monthsInYear);
+                try_time.month = ((try_time.month - 1) % self_time.monthsInYear) + 1;
+            }
+            //
+            if (try_time.millisecond < 0) {
+                try_time.second -= 1 + Math.trunc(Math.abs(try_time.millisecond) / 1000);
+                try_time.millisecond = 1000 + (try_time.millisecond % 1000);
+            }
+            if (try_time.second < 0) {
+                try_time.minute -= 1 + Math.trunc(Math.abs(try_time.second) / 60);
+                try_time.second = 60 + (try_time.second % 60);
+            }
+            if (try_time.minute < 0) {
+                try_time.hour -= 1 + Math.trunc(Math.abs(try_time.minute) / 60);
+                try_time.minute = 60 + (try_time.minute % 60);
+            }
+            if (try_time.hour < 0) {
+                try_time.day -= 1 + Math.trunc(Math.abs(try_time.hour) / self_time.hoursInDay);
+                try_time.hour = self_time.hoursInDay + (try_time.hour % self_time.hoursInDay);
+            }
+            if (try_time.day < 1) {
+                try_time.month -= 1;
+                try_time.day += self_time.subtract({months: 1}).daysInMonth;
+            }
+            if (try_time.month < 1) {
+                try_time.year -= 1;
+                try_time.month += self_time.monthsInYear;
+            }
+        }
+    }
+    return (this.time = time).epochMilliseconds;
 };
 Datetime_global.prototype.setMinutes = function (this: Datetime_global, minutes: number, seconds?: number, milliseconds?: number): number {
-    const self: Date = new Date(this.time.epochMilliseconds);
-    seconds = arguments.length > 1 ? seconds : self.getSeconds();
-    milliseconds = arguments.length > 2 ? milliseconds : self.getMilliseconds();
-    return this.setHours(self.getHours(), minutes, seconds, milliseconds);
+    seconds = arguments.length > 1 ? seconds : this.getSeconds();
+    milliseconds = arguments.length > 2 ? milliseconds : this.getMilliseconds();
+    return this.setHours(this.getHours(), minutes, seconds, milliseconds);
 };
 Datetime_global.prototype.setSeconds = function (this: Datetime_global, seconds: number, milliseconds?: number): number {
-    const self: Date = new Date(this.time.epochMilliseconds);
-    milliseconds = arguments.length > 1 ? milliseconds : self.getMilliseconds();
-    return this.setHours(self.getHours(), self.getMinutes(), seconds, milliseconds);
+    milliseconds = arguments.length > 1 ? milliseconds : this.getMilliseconds();
+    return this.setHours(this.getHours(), this.getMinutes(), seconds, milliseconds);
 };
 Datetime_global.prototype.setMilliseconds = function (this: Datetime_global, milliseconds: number): number {
-    const self: Date = new Date(this.time.epochMilliseconds);
-    return this.setHours(self.getHours(), self.getMinutes(), self.getSeconds(), milliseconds);
+    return this.setHours(this.getHours(), this.getMinutes(), this.getSeconds(), milliseconds);
 };
 // UTC
 Datetime_global.prototype.setUTCFullYear = function (this: Datetime_global, fullYear: number, month?: number, date?: number): number {
