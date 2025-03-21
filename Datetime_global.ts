@@ -1,5 +1,4 @@
 "use strict";
-
 import {Datetime_local} from "./Datetime_local.js";
 import {Temporal} from '@js-temporal/polyfill';
 
@@ -52,8 +51,7 @@ export type Datetime_global = {
     getFullMonthName(this: Datetime_global): string;
     getFullDayName(this: Datetime_global): string;
 
-    toHTMLDiscordString(this: Datetime_global, f: "R" | "T" | "t" | "f" | "F" | "D" | "d"): string;
-    setNanoseconds(this: Datetime_global, nanoseconds: bigint): bigint;
+    setNanoseconds(this: Datetime_global, nanoseconds: bigint, microseconds?: bigint): bigint;
     getNanoseconds(this: Datetime_global): bigint;
     getUTCNanoseconds(this: Datetime_global): bigint;
     toDatetime_local(this: Datetime_global): Datetime_local;
@@ -67,10 +65,10 @@ export type Datetime_global = {
     setMinutes(this: Datetime_global, minutes: number, seconds?: number, milliseconds?: number): number;
     setSeconds(this: Datetime_global, seconds: number, milliseconds?: number): number;
     setMilliseconds(this: Datetime_global, milliseconds: number): number;
-    withSubsecondToZero(this: Datetime_global): Datetime_global;
 
-    toUTC(this: Datetime_global): Datetime_global;
+    toUTCTimezone(this: Datetime_global): Datetime_global;
     toLocalTime(this: Datetime_global): Datetime_global;
+    toLocaleString(locales: string | string[] | undefined, options:Intl.DateTimeFormatOptions | undefined): string;
 };
 
 interface Datetime_global_constructor {
@@ -171,19 +169,11 @@ Datetime_global.fromComponentsUTC = function (
         if (typeof year === 'string') {
             year = Datetime_local.parse(`${year}`, false);
         }
-        if (typeof year === "number") {
-            date_time.setTime(+year);
-        } else {
-            date_time.setTime(NaN);
-        }
+        date_time.setTime(year as number);
     } else if (arguments.length > 1) {
-        if (typeof year === "number") {
-            date_time.setTime(Date.UTC(year, month, date, hour, minute, second, millisecond));
-        } else {
-            date_time.setTime(NaN);
-        }
+        date_time.setTime(Date.UTC(year as number, month, date, hour, minute, second, millisecond));
     }
-    return (BigInt(+date_time) * 1_000_000n) + BigInt(nanosecond);
+    return (BigInt(date_time.getTime()) * 1_000_000n) + BigInt(nanosecond);
 };
 
 /**
@@ -273,11 +263,12 @@ Datetime_global.prototype.setTime = function (this: Datetime_global, timestamp: 
 Datetime_global.prototype.toString = function (this: Datetime_global): string {
     const self: Datetime_global = this, pad = function (strx: string | any, number: number = 2): string {
         return String(strx).padStart(Number(number), '0');
-    };
+    }, fullYear = pad(self.time.withCalendar('iso8601').year, 4);
+
     const offset: string = Datetime_global.getUTCOffset(self.getTimezoneOffset()),
         string: string = `${self.getDayName()} ${self.getMonthName()} ${pad(self.getDate())}`,
         time: string = `${pad(self.getHours())}:${pad(self.getMinutes())}:${pad(self.getSeconds())}`;
-    return `${string} ${pad(self.getFullYear(), 4)} ${time} ${offset} (${self.time.timeZoneId})`;
+    return `${string} ${fullYear} ${time} ${offset} (${self.time.timeZoneId})`;
 };
 /**
  * an insertable HTML String representing this Date using the user's local datetime.
@@ -299,74 +290,74 @@ Datetime_global.prototype.toHTMLString = function (this: Datetime_global): strin
     return `<time datetime="${date.toISOString()}">${this.toString()}</time>`;
 };
 
-/**
- * an insertable HTML String representing this Datetime using the specified timezone
- *
- * @returns {string} an insertable HTML String representing this Datetime using the specified timezone
- */
-Datetime_global.prototype.toHTMLDiscordString = function (
-    this: Datetime_global, f: "R" | "T" | "t" | "f" | "F" | "D" | "d" = 'f'): string {
-    let date: Date = new Date(this.time.epochMilliseconds), strx = this.toString();
-    const self: Datetime_global = this, pad = function (strx: string | any, number: number = 2): string {
-        return String(strx).padStart(Number(number), '0');
-    }, t: string = `${pad(self.getHours())}:${pad(self.getMinutes())}`;
-    switch (f) {
-        case 't':
-            strx = t;
-            break;
-        case 'T':
-            strx = `${t}:${pad(self.getSeconds())}`;
-            break;
-        case 'd':
-            strx = `${pad(self.getFullYear(), 4)}-${pad(self.getMonth() + 1)}-${pad(self.getDate())}`;
-            break;
-        case 'D':
-            strx = `${pad(self.getFullYear(), 4)} ${pad(self.getFullMonthName())} ${pad(self.getDate())}`;
-            break;
-        case 'f':
-            strx = `${pad(self.getFullYear(), 4)} ${pad(self.getFullMonthName())} ${pad(self.getDate())} ${t}`;
-            break;
-        case 'F':
-            strx = `${pad(self.getFullDayName())}, ${pad(self.getFullYear(), 4)}`
-                + ` ${pad(self.getFullMonthName())} ${pad(self.getDate())} ${t}`;
-            break;
-        case 'R':
-            const differenceSeconds: number = Math.trunc(((+new Date) - (+self.getTime())) / 1_000),
-                positive: boolean = differenceSeconds >= 0;
-            if (differenceSeconds === 0) {
-                strx = 'now';
-            } else if (Math.abs(differenceSeconds) < 60) {
-                strx = `${Math.abs(differenceSeconds)} seconds ${positive ? 'ago' : 'from now'}`;
-            } else if (Math.abs(differenceSeconds) < 3600) {
-                const minutes = Math.abs(Math.trunc(differenceSeconds / 60));
-                strx = `${minutes} minute${minutes !== 1 ? 's' : ''} ${positive ? 'ago' : 'from now'}`;
-            } else if (Math.abs(differenceSeconds) < 86400) {
-                const hours = Math.abs(Math.trunc(differenceSeconds / 3600));
-                strx = `${hours} hour${hours !== 1 ? 's' : ''} ${positive ? 'ago' : 'from now'}`;
-            } else {
-                const days = Math.abs(Math.trunc(differenceSeconds / 86400));
-                strx = `${days} day${days !== 1 ? 's' : ''} ${positive ? 'ago' : 'from now'}`;
-            }
-            break;
-        default:
-            throw new Error(`${f} is not valid`);
-    }
-    return `<time datetime="${date.toISOString()}" data-format="${f}" title="${this.toString()}">${strx}</time>`;
-};
+// /**
+//  * an insertable HTML String representing this Datetime using the specified timezone
+//  *
+//  * @returns {string} an insertable HTML String representing this Datetime using the specified timezone
+//  */
+// Datetime_global.prototype.toHTMLDiscordString = function (
+//     this: Datetime_global, f: "R" | "T" | "t" | "f" | "F" | "D" | "d" = 'f'): string {
+//     let date: Date = new Date(this.time.epochMilliseconds), strx = this.toString();
+//     const self: Datetime_global = this, pad = function (strx: string | any, number: number = 2): string {
+//         return String(strx).padStart(Number(number), '0');
+//     }, t: string = `${pad(self.getHours())}:${pad(self.getMinutes())}`;
+//     switch (f) {
+//         case 't':
+//             strx = t;
+//             break;
+//         case 'T':
+//             strx = `${t}:${pad(self.getSeconds())}`;
+//             break;
+//         case 'd':
+//             strx = `${pad(self.getFullYear(), 4)}-${pad(self.getMonth() + 1)}-${pad(self.getDate())}`;
+//             break;
+//         case 'D':
+//             strx = `${pad(self.getFullYear(), 4)} ${pad(self.getFullMonthName())} ${pad(self.getDate())}`;
+//             break;
+//         case 'f':
+//             strx = `${pad(self.getFullYear(), 4)} ${pad(self.getFullMonthName())} ${pad(self.getDate())} ${t}`;
+//             break;
+//         case 'F':
+//             strx = `${pad(self.getFullDayName())}, ${pad(self.getFullYear(), 4)}`
+//                 + ` ${pad(self.getFullMonthName())} ${pad(self.getDate())} ${t}`;
+//             break;
+//         case 'R':
+//             const differenceSeconds: number = Math.trunc(((+new Date) - (+self.getTime())) / 1_000),
+//                 positive: boolean = differenceSeconds >= 0;
+//             if (differenceSeconds === 0) {
+//                 strx = 'now';
+//             } else if (Math.abs(differenceSeconds) < 60) {
+//                 strx = `${Math.abs(differenceSeconds)} seconds ${positive ? 'ago' : 'from now'}`;
+//             } else if (Math.abs(differenceSeconds) < 3600) {
+//                 const minutes = Math.abs(Math.trunc(differenceSeconds / 60));
+//                 strx = `${minutes} minute${minutes !== 1 ? 's' : ''} ${positive ? 'ago' : 'from now'}`;
+//             } else if (Math.abs(differenceSeconds) < 86400) {
+//                 const hours = Math.abs(Math.trunc(differenceSeconds / 3600));
+//                 strx = `${hours} hour${hours !== 1 ? 's' : ''} ${positive ? 'ago' : 'from now'}`;
+//             } else {
+//                 const days = Math.abs(Math.trunc(differenceSeconds / 86400));
+//                 strx = `${days} day${days !== 1 ? 's' : ''} ${positive ? 'ago' : 'from now'}`;
+//             }
+//             break;
+//         default:
+//             throw new Error(`${f} is not valid`);
+//     }
+//     return `<time datetime="${date.toISOString()}" data-format="${f}" title="${this.toString()}">${strx}</time>`;
+// };
 // builtin-proxy
 /**
  * a proxy for `Date.prototype.getDay`
  * @returns {number}
  */
 Datetime_global.prototype.getDay = function (this: Datetime_global): number {
-    return this.time.dayOfWeek % 7;
+    return this.time.dayOfWeek % this.time.daysInWeek;
 };
 /**
  * a proxy for `Date.prototype.getYear` or `this.date.getFullYear() - 1900`.
  * @returns {number}
  */
 Datetime_global.prototype.getYear = function (this: Datetime_global): number {
-    return this.time.year - 1900;
+    return this.time.withCalendar('iso8601').year - 1900;
 };
 /**
  * a proxy for `Date.prototype.getFullYear`
@@ -782,60 +773,6 @@ Datetime_global.prototype.getUTCNanoseconds = Datetime_global.prototype.getNanos
     return (BigInt(this.time.microsecond) * 1_000n) + BigInt(this.time.nanosecond);
 };
 /**
- * a proxy for `Date.prototype.getDay`
- * @returns {number}
- */
-Datetime_global.prototype.getDayNumberWeek = function (): number {
-    return this.getDay();
-};
-/**
- * a proxy for `Date.prototype.getDate`
- * @returns {number}
- */
-Datetime_global.prototype.getDayNumber = function (): number {
-    return this.getDate();
-};
-/**
- * a proxy for `Date.prototype.getDate`
- * @returns {number}
- */
-Datetime_global.prototype.getDayNumberMonth = function (): number {
-    return this.getDate();
-};
-
-/**
- * returns one of `['Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat']` if `Datetime_global.daynames` isnt Modified, otherwise it returns `string`
- * @returns {'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | string} arcording to `Date.prototype.getDay`
- */
-Datetime_global.prototype.getDayName = function (): 'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | string {
-    return Datetime_global.daynames[this.getDay()];
-};
-/**
- * returns one of `['Jan' | 'Feb' | 'Mar' | 'Apr' | 'May' | 'Jun' | 'Jul' | 'Aug' | 'Sep' | 'Oct' | 'Nov' | 'Dec']` if
- * `Datetime_global.monthnames` isnt Modified, otherwise it returns `string`
- * @returns {'Jan' | 'Feb' | 'Mar' | 'Apr' | 'May' | 'Jun' | 'Jul' | 'Aug' | 'Sep' | 'Oct' | 'Nov' | 'Dec' | string} arcording to `Date.prototype.getMonth`
- */
-Datetime_global.prototype.getMonthName = function (): 'Jan' | 'Feb' | 'Mar' | 'Apr' | 'May' | 'Jun' | 'Jul' | 'Aug' | 'Sep' | 'Oct' | 'Nov' | 'Dec' | string {
-    return Datetime_global.monthnames[this.getMonth()];
-};
-/**
- * returns one of `['Sunday'| 'Monday'| 'Tuesday'| 'Wednesday'| 'Thursday'| 'Friday'| 'Saturday']` if
- * `Datetime_global.daynamesFull` isnt Modified, otherwise it returns `string`
- * @returns {'Sunday'| 'Monday'| 'Tuesday'| 'Wednesday'| 'Thursday'| 'Friday'| 'Saturday' | string} arcording to `Date.prototype.getDay`
- */
-Datetime_global.prototype.getFullDayName = function (): 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | string {
-    return Datetime_global.daynamesFull[this.getDay()];
-};
-/**
- * returns one of `['January'| 'February'| 'March'| 'April'| 'May'| 'June'| 'July'| 'August'| 'September'| 'October'| 'November'| 'December']` if
- * `Datetime_global.monthnamesFull` isnt Modified, otherwise it returns `string`
- * @returns {'January'| 'February'| 'March'| 'April'| 'May'| 'June'| 'July'| 'August'| 'September'| 'October'| 'November'| 'December' | string}
- * arcording to `Date.prototype.getMonth`
- */
-Datetime_global.prototype.getFullMonthName = function (): 'January' | 'February' | 'March' | 'April' | 'May' | 'June' | 'July' | 'August' | 'September' | 'October' | 'November' | 'December' | string {
-    return Datetime_global.monthnamesFull[this.getMonth()];
-};
-/**
  * format a UTC offset from offset in minutes call
  * @param offset
  */
@@ -858,15 +795,12 @@ Datetime_global.htmlToCurrentTime = function (timetags: NodeListOf<HTMLTimeEleme
         each.innerText = d.toString();
     });
 };
-Datetime_global.prototype.withSubsecondToZero = function (this: Datetime_global): Datetime_global {
-    return new Datetime_global(this.time.with({microsecond: 0, nanosecond: 0, millisecond: 0,}).epochNanoseconds);
-};
 /**
  * applies the UTC time to the `Datetime_global`
  *
  * @returns {Datetime_global}
  */
-Datetime_global.prototype.toUTC = function (this: Datetime_global): Datetime_global {
+Datetime_global.prototype.toUTCTimezone = function (this: Datetime_global): Datetime_global {
     return this.toTimezone('UTC');
 };
 /**
@@ -876,4 +810,30 @@ Datetime_global.prototype.toUTC = function (this: Datetime_global): Datetime_glo
  */
 Datetime_global.prototype.toLocalTime = function (this: Datetime_global): Datetime_global {
     return this.toTimezone(Temporal.Now.timeZoneId());
+};
+
+Datetime_global.prototype.getDayNumberWeek = function (): number {
+    return this.getDay();
+};
+
+Datetime_global.prototype.getDayNumberMonth = Datetime_global.prototype.getDayNumber = function (): number {
+    return this.getDate();
+};
+Datetime_global.prototype.getDayName = function (): string {
+    return this.time.toLocaleString("en-US", {"weekday": "short"});
+};
+
+Datetime_global.prototype.getMonthName = function (): string {
+    return this.time.toLocaleString("en-US", {"month": "short"});
+};
+
+Datetime_global.prototype.getFullDayName = function (): string {
+    return this.time.toLocaleString("en-US", {"weekday": "long"});
+};
+
+Datetime_global.prototype.getFullMonthName = function (): string {
+    return this.time.toLocaleString("en-US", {"month": "long"});
+};
+Datetime_global.prototype.toLocaleString = function (locales?: string | string[] | undefined, options?: Intl.DateTimeFormatOptions | undefined): string {
+    return this.time.toLocaleString(locales, options);
 };
