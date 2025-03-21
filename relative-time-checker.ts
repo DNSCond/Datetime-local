@@ -1,6 +1,8 @@
 "use strict";
-
-class RelativeTimeChecker {
+/**
+ * @deprecated
+ */
+export default class RelativeTimeChecker {
     private element: HTMLTimeElement;
     private readonly format: 'R' | 'toString' | 'toDateString' | 'toTimeString' | 'toLocaleString' | 'toLocaleDateString' | 'toLocaleTimeString' | 'toUTCString' | Function;
 
@@ -14,11 +16,11 @@ class RelativeTimeChecker {
     }
 
     run(format?: 'R' | 'Relative' | 'toString' | 'toDateString' | 'toTimeString' | 'toLocaleString' | 'toLocaleDateString' | 'toLocaleTimeString' | 'toUTCString' | Function | undefined): boolean {
-        const temporaryTime: Date = new Date(this.element.dateTime), currentDate: number = +(new Date());
-        const differenceSeconds: number = Math.trunc((currentDate - (+temporaryTime)) / 1_000);
-        const positive: boolean = differenceSeconds >= 0;
+        const temporaryTime: Date = new Date(this.element.dateTime), currentDate: number = Date.now();
+        const difference = (currentDate - (+temporaryTime)), positive: boolean = difference >= 0;
+        const differenceSeconds: number = Math.trunc(difference / 1_000);
 
-        if (isNaN(temporaryTime.getTime())) {
+        if (Number.isNaN(temporaryTime.getTime())) {
             this.element.innerText = 'Invalid Date';
             return false;
         }
@@ -29,7 +31,7 @@ class RelativeTimeChecker {
                 this.element.innerText = 'Invalid Date';
                 return false;
             }
-            this.element.innerText = text;
+            this.element.innerText = String(text);
             return true;
         }
         switch (format) {
@@ -55,9 +57,10 @@ class RelativeTimeChecker {
                 this.element.innerText = temporaryTime.toUTCString();
                 break;
             default: // 'R'
-                if (differenceSeconds === 0) {
+                /*if (differenceSeconds === 0) {
                     this.element.innerText = 'now';
-                } else if (Math.abs(differenceSeconds) < 60) {
+                } else*/
+                if (Math.abs(differenceSeconds) < 60) {
                     this.element.innerText = `${Math.abs(differenceSeconds)} seconds ${positive ? 'ago' : 'from now'}`;
                 } else if (Math.abs(differenceSeconds) < 3600) {
                     const minutes = Math.abs(Math.trunc(differenceSeconds / 60));
@@ -95,3 +98,5 @@ class RelativeTimeChecker {
         });
     }
 }
+// (new RelativeTimeChecker(document.querySelector('time'),'R')).autorun();
+// document.querySelector('time').dateTime=(new Date(Date.now() + 4_000)).toISOString();

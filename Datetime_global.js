@@ -637,25 +637,25 @@ Datetime_global.daynamesFull = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thu
 Datetime_global.monthnamesFull = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 // custom
 /**
- * sets the Nanoseconds
+ * sets the Nanoseconds and optionally the microseconds
+ * @param nanoseconds the Nanoseconds you want to set to
+ * @param microseconds the microseconds you want to set to
  * @returns {bigint}
  */
-Datetime_global.prototype.setNanoseconds = function (nanoseconds) {
-    return BigInt((this.time = new Temporal.ZonedDateTime(this.time.epochNanoseconds + BigInt(nanoseconds), this.time.timeZoneId)).nanosecond);
+Datetime_global.prototype.setNanoseconds = function (nanoseconds = 0n, microseconds) {
+    const self_time = this.time, did_specify_microseconds = arguments.length > 1;
+    microseconds = BigInt(did_specify_microseconds ? (microseconds ?? 0) : self_time.microsecond);
+    return BigInt((this.time = new Temporal.ZonedDateTime(self_time.with({
+        microsecond: did_specify_microseconds ? 0 : self_time.microsecond,
+        nanosecond: 0, millisecond: self_time.millisecond,
+    }).epochNanoseconds + ((microseconds * 1000n) + BigInt(nanoseconds)), self_time.timeZoneId)).epochNanoseconds);
 };
 /**
- * gets the Nanoseconds
+ * gets the Nanoseconds and microseconds
  * @returns {bigint}
  */
-Datetime_global.prototype.getNanoseconds = function () {
-    return BigInt(this.time.nanosecond);
-};
-/**
- * gets the Nanoseconds
- * @returns {bigint}
- */
-Datetime_global.prototype.getUTCNanoseconds = function () {
-    return BigInt(this.time.nanosecond);
+Datetime_global.prototype.getUTCNanoseconds = Datetime_global.prototype.getNanoseconds = function () {
+    return (BigInt(this.time.microsecond) * 1000n) + BigInt(this.time.nanosecond);
 };
 /**
  * a proxy for `Date.prototype.getDay`
@@ -732,4 +732,23 @@ Datetime_global.htmlToCurrentTime = function (timetags = []) {
         const tz = each.getAttribute('data-iana-timezone') ?? Temporal.Now.timeZoneId(), d = new Datetime_global(Date.parse(each.dateTime), tz);
         each.innerText = d.toString();
     });
+};
+Datetime_global.prototype.withSubsecondToZero = function () {
+    return new Datetime_global(this.time.with({ microsecond: 0, nanosecond: 0, millisecond: 0, }).epochNanoseconds);
+};
+/**
+ * applies the UTC time to the `Datetime_global`
+ *
+ * @returns {Datetime_global}
+ */
+Datetime_global.prototype.toUTC = function () {
+    return this.toTimezone('UTC');
+};
+/**
+ * applies the user's LocalTime to the `Datetime_global`
+ *
+ * @returns {Datetime_global}
+ */
+Datetime_global.prototype.toLocalTime = function () {
+    return this.toTimezone(Temporal.Now.timeZoneId());
 };

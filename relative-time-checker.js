@@ -1,5 +1,8 @@
 "use strict";
-class RelativeTimeChecker {
+/**
+ * @deprecated
+ */
+export default class RelativeTimeChecker {
     element;
     format;
     constructor(timetag, format = 'R') {
@@ -12,10 +15,10 @@ class RelativeTimeChecker {
         }
     }
     run(format) {
-        const temporaryTime = new Date(this.element.dateTime), currentDate = +(new Date());
-        const differenceSeconds = Math.trunc((currentDate - (+temporaryTime)) / 1000);
-        const positive = differenceSeconds >= 0;
-        if (isNaN(temporaryTime.getTime())) {
+        const temporaryTime = new Date(this.element.dateTime), currentDate = Date.now();
+        const difference = (currentDate - (+temporaryTime)), positive = difference >= 0;
+        const differenceSeconds = Math.trunc(difference / 1000);
+        if (Number.isNaN(temporaryTime.getTime())) {
             this.element.innerText = 'Invalid Date';
             return false;
         }
@@ -26,7 +29,7 @@ class RelativeTimeChecker {
                 this.element.innerText = 'Invalid Date';
                 return false;
             }
-            this.element.innerText = text;
+            this.element.innerText = String(text);
             return true;
         }
         switch (format) {
@@ -52,10 +55,10 @@ class RelativeTimeChecker {
                 this.element.innerText = temporaryTime.toUTCString();
                 break;
             default: // 'R'
-                if (differenceSeconds === 0) {
+                /*if (differenceSeconds === 0) {
                     this.element.innerText = 'now';
-                }
-                else if (Math.abs(differenceSeconds) < 60) {
+                } else*/
+                if (Math.abs(differenceSeconds) < 60) {
                     this.element.innerText = `${Math.abs(differenceSeconds)} seconds ${positive ? 'ago' : 'from now'}`;
                 }
                 else if (Math.abs(differenceSeconds) < 3600) {
@@ -97,4 +100,3 @@ class RelativeTimeChecker {
         });
     }
 }
-export {};
