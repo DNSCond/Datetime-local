@@ -1,6 +1,7 @@
 "use strict";
 import {Datetime_local} from "./Datetime_local.js";
-import {Temporal} from '@js-temporal/polyfill';
+// import {Temporal} from '@js-temporal/polyfill';
+import {Temporal} from 'temporal-polyfill'
 
 export type Datetime_global = {
     constructor: Datetime_global_constructor,
@@ -78,10 +79,10 @@ interface Datetime_global_constructor {
     prototype: Datetime_global;
 
     new(from?: Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local | bigint | number | undefined,
-        timezoneId?: Temporal.TimeZoneLike): Datetime_global,
+        timezoneId?: Temporal.TimeZoneLike | string): Datetime_global,
 
     (from?: Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local | bigint | number | undefined,
-     timezoneId?: Temporal.TimeZoneLike): string,
+     timezoneId?: Temporal.TimeZoneLike | string): string,
 
     parse_strict(string: string): Temporal.ZonedDateTime;
 
@@ -123,7 +124,7 @@ interface Datetime_global_constructor {
  */
 export const Datetime_global: Datetime_global_constructor = function (
     this: Datetime_global, from: Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local | bigint | number | undefined = undefined,
-    timezoneId: Temporal.TimeZoneLike = Temporal.Now.timeZoneId(),
+    timezoneId: string = Temporal.Now.timeZoneId(),
 ): Datetime_global | string | void {
     let timestamp: number | bigint, isBigInt: boolean = false;
     if (arguments.length === 0 || from === undefined) {
@@ -885,12 +886,11 @@ Datetime_global.prototype.format = function (this: Datetime_global, string: stri
     const pad = function (numberToPad: number, number: number = 2, plusIfPositive: boolean = false): string {
         return (numberToPad < 0 ? '-' : (plusIfPositive ? '+' : '')) + String(Math.abs(numberToPad)).padStart(Number(number), '0');
     }, datetime_local: Datetime_global = this.withCalender();
-    const hour24: string = pad(datetime_local.getHours()), dayName: string = datetime_local.getDayName(),
-        hour12: string = datetime_local.toLocaleString('en-US', {hour12: true, hour: "2-digit"});
+    const hour24: string = pad(datetime_local.getHours()), dayName: string = datetime_local.getDayName();
     const iso8601: Datetime_global = datetime_local;
     const dayNumberMonth: string = pad(datetime_local.getDayNumberMonth()),
         N: string = iso8601.time.dayOfWeek.toString(),//iso8601.time.dayOfWeek
-        W: string = iso8601.time.weekOfYear.toString(),
+        W: string = iso8601.time?.weekOfYear?.toString()??'undefined',
         w: string = iso8601.getDay().toString(),
         z: string = iso8601.time.daysInYear.toString(),
         m: string = pad(datetime_local.getMonth() + 1),

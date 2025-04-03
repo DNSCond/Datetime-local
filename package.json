@@ -9,6 +9,6 @@
         "test": "node tests.js"
     },
     "dependencies": {
-        "@js-temporal/polyfill": "^0.4.4"
+        "temporal-polyfill": "^0.3.0"
     }
 }
