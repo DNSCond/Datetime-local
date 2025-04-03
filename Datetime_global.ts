@@ -3,6 +3,7 @@ import {Datetime_local} from "./Datetime_local.js";
 import {Temporal} from '@js-temporal/polyfill';
 
 export type Datetime_global = {
+    constructor: Datetime_global_constructor,
     time: Temporal.ZonedDateTime,
     [Symbol.toStringTag]: string,
     toString(this: Datetime_global): string,
@@ -68,7 +69,9 @@ export type Datetime_global = {
 
     toUTCTimezone(this: Datetime_global): Datetime_global;
     toLocalTime(this: Datetime_global): Datetime_global;
-    toLocaleString(locales: string | string[] | undefined, options:Intl.DateTimeFormatOptions | undefined): string;
+    toLocaleString(locales?: string | string[] | undefined, options?: Intl.DateTimeFormatOptions | undefined): string;
+    format(this: Datetime_global, string: string): string;//formatPlaceholders(this:Datetime_global):{[k:string]:string};
+    withCalender(this: Datetime_global, calender?: Temporal.CalendarLike): Datetime_global;
 };
 
 interface Datetime_global_constructor {
@@ -837,3 +840,158 @@ Datetime_global.prototype.getFullMonthName = function (): string {
 Datetime_global.prototype.toLocaleString = function (locales?: string | string[] | undefined, options?: Intl.DateTimeFormatOptions | undefined): string {
     return this.time.toLocaleString(locales, options);
 };
+// Datetime_global.prototype.formatPlaceholders = function (this: Datetime_global): { [k: string]: string } {
+//     const pad = function (strx: string | any, number: number = 2): string {
+//         return String(strx).padStart(Number(number), '0');
+//     }, datetime_local = new this.constructor(this);
+//     const hour24=datetime_local.getHours(),
+//         hour12 = datetime_local.toLocaleString('en-US', {hour12: true, hour: "2-digit"});
+//     return Object.fromEntries(Object.entries({
+//         'Hour24': String(hour24),
+//         'Hour12': String(hour12),
+//         'pre0-Hour24': pad(hour24),
+//         'pre0-Hour12': pad(hour12),
+//         'Year4': String(hour24),
+//         'Hour12': String(hour12),
+//
+//     }).map(s => [s[0].toLowerCase(), s[1]]));
+// };
+// Datetime_global.prototype.format = function (this: Datetime_global, string: string): string {
+//     const timetags: { [k: string]: string } = this.formatPlaceholders();
+//     return String(string).replaceAll(/\[([a-z\-0-9]+?)]/ig, function (_: string, value: string): string {
+// return timetags[value] ?? `[${value}]`;});};
+
+Datetime_global.prototype.format = function (this: Datetime_global, string: string): string {
+    function underscoreNumber(n: number | bigint): string {
+        return chunkArray(Array.from(BigInt(n).toString()).reverse(), 3).map(chunk => chunk.reverse().join().replace(/,/g, '')).reverse().join().replace(/,/g, '_');
+    }
+
+    function chunkArray(array: any[] | string, chunkSize: number): any[] {
+        const result = [];
+        array = Array.from(array);
+        chunkSize = Number(Math.trunc(chunkSize));
+        for (let i = 0; i < array.length; i += chunkSize) {
+            result.push(array.slice(i, i + chunkSize));
+        }
+        return result;
+    }
+
+    function addSignToNumber(n: number | bigint | string, chunk: boolean = true): string {
+        const strx: string = String((chunk ? underscoreNumber : BigInt)(n as bigint));
+        return strx.startsWith('-') ? strx : `+${strx}`;
+    }
+
+    //(new this.constructor(this, this?.time?.timeZoneId))
+    const pad = function (numberToPad: number, number: number = 2, plusIfPositive: boolean = false): string {
+        return (numberToPad < 0 ? '-' : (plusIfPositive ? '+' : '')) + String(Math.abs(numberToPad)).padStart(Number(number), '0');
+    }, datetime_local: Datetime_global = this.withCalender();
+    const hour24: string = pad(datetime_local.getHours()), dayName: string = datetime_local.getDayName(),
+        hour12: string = datetime_local.toLocaleString('en-US', {hour12: true, hour: "2-digit"});
+    const iso8601: Datetime_global = datetime_local;
+    const dayNumberMonth: string = pad(datetime_local.getDayNumberMonth()),
+        N: string = iso8601.time.dayOfWeek.toString(),//iso8601.time.dayOfWeek
+        W: string = iso8601.time.weekOfYear.toString(),
+        w: string = iso8601.getDay().toString(),
+        z: string = iso8601.time.daysInYear.toString(),
+        m: string = pad(datetime_local.getMonth() + 1),
+        M: string = datetime_local.getMonthName(),
+        F: string = datetime_local.getFullMonthName(),
+        dayInMonth: string = datetime_local.time.daysInMonth.toString(),
+        leap: string = datetime_local.time.inLeapYear ? '1' : '0',
+        X: string = pad(datetime_local.getFullYear(), 4),
+        getYear: string = pad(datetime_local.getYear(), 2),
+        minutes: string = pad(datetime_local.getMinutes()),
+        seconds: string = pad(datetime_local.getSeconds()),
+        datetime_timezone: string = datetime_local.time.timeZoneId,
+        offset: string = Datetime_global.getUTCOffset(datetime_local.getTimezoneOffset()).replace(/UTC/, ''),
+        B: string = (function () {//toSwatchInternetTime
+            const date: Date = datetime_local.toDate(), userTimestamp: bigint = BigInt(+date),
+                midnightTimestamp: bigint = BigInt(date.setUTCHours(1, 0, 0, 0));
+            //const MS_PER_BEAT:bigint = 86400000n / 1000n; // 86_400 ms per beat
+            const elapsedMs: bigint = userTimestamp - midnightTimestamp;
+            return ((elapsedMs * 1000n) / 86400000n).toString().padStart(3, '0');  // Compute beats as BigInt
+        })();
+    return String(string,
+    ).replace(/\[Datetime_globalV1]/ig, 'D Y-m-d H:i:s \\U\\T\\CO (e)'
+    ).replace(/\[DateV1]/ig, 'D M d Y H:i:s \\U\\T\\CO (e)'
+    ).replace(/\[HeaderDefault]/ig, 'D, d M Y H:i:s O (e)'
+    ).replace(/\[toMYSQLi]/ig, 'Y-m-d H:i:s'
+    ).replace(/\[B]/ig, 'D, @B (Y-m-d H:i:s)'
+    ).replace(/\\*[a-zA-Z]/ig, function (substring: string): string {
+        const strxx: string = substring.replace(/\\\\/g, '\\').slice(-1);
+        if (substring.length % 2 !== 0) {
+            const strx: string = strxx.replace(/[^\\]/g, ''),
+                charxater: string = substring.replace(/\\/g, '');
+            switch (charxater) {
+                case 'd':
+                    return strx + dayNumberMonth;
+                case 'D':
+                    return strx + dayName;
+                case 'j':
+                    return strx + +dayNumberMonth;
+                case 'l':
+                    return strx + dayName;
+                case 'N':
+                    return strx + +N;
+                case 'S':
+                    throw new Error('\'S\' is not supported as formatting character');
+                case 'w':
+                    return strx + w;
+                case 'z':
+                    return strx + z;
+                case 'W':
+                    return strx + W;
+                case 'F':
+                    return strx + F;
+                case 'm':
+                    return strx + m;
+                case 'M':
+                    return strx + M;
+                case 'n':
+                    return strx + +m;
+                case 't':
+                    return strx + dayInMonth;
+                case 'L':
+                    return strx + leap;
+                case 'o':
+                    throw new Error('\'o\' is not supported as formatting character');
+                case 'X':
+                    return strx + addSignToNumber(X, false);
+                case 'Y':
+                    return strx + X;
+                case 'y':
+                    return strx + getYear;
+                case 'x':
+                    if (+X > 10_000) {
+                        return strx + '+' + X;
+                    }
+                    return strx + addSignToNumber(X, false).replace(/^\+/, '');
+                case 'a':
+                    return strx + (+hour24 < 12 ? 'am' : 'pm');
+                case 'A':
+                    return strx + (+hour24 < 12 ? 'am' : 'pm').toUpperCase();
+                case 'B':
+                    return strx + B;
+                case 'H':
+                    return strx + hour24;
+                case 'i':
+                    return strx + minutes;
+                case 's':
+                    return strx + seconds;
+                case 'O':
+                    return strx + offset;
+                case 'e':
+                    return strx + datetime_timezone;
+                default:
+                    throw new Error('your \'' + charxater + '\' is not supported as formatting character');
+            }
+        }
+        return strxx;
+    });
+};
+Datetime_global.prototype.withCalender = function (this: Datetime_global, calender: Temporal.CalendarLike = "iso8601"): Datetime_global {
+    const datetime_global: Datetime_global = new Datetime_global(this.time.epochNanoseconds, this.time.timeZoneId);
+    datetime_global.time = datetime_global.time.withCalendar(calender);
+    return datetime_global;
+};
+
