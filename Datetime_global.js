@@ -1,6 +1,7 @@
 "use strict";
 import { Datetime_local } from "./Datetime_local.js";
-import { Temporal } from '@js-temporal/polyfill';
+// import {Temporal} from '@js-temporal/polyfill';
+import { Temporal } from 'temporal-polyfill';
 /**
  * constructs a Datetime_global or Datetime_global string based on different conditions
  * @param from {Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local | bigint | number}
@@ -746,10 +747,10 @@ Datetime_global.prototype.format = function (string) {
     const pad = function (numberToPad, number = 2, plusIfPositive = false) {
         return (numberToPad < 0 ? '-' : (plusIfPositive ? '+' : '')) + String(Math.abs(numberToPad)).padStart(Number(number), '0');
     }, datetime_local = this.withCalender();
-    const hour24 = pad(datetime_local.getHours()), dayName = datetime_local.getDayName(), hour12 = datetime_local.toLocaleString('en-US', { hour12: true, hour: "2-digit" });
+    const hour24 = pad(datetime_local.getHours()), dayName = datetime_local.getDayName();
     const iso8601 = datetime_local;
     const dayNumberMonth = pad(datetime_local.getDayNumberMonth()), N = iso8601.time.dayOfWeek.toString(), //iso8601.time.dayOfWeek
-    W = iso8601.time.weekOfYear.toString(), w = iso8601.getDay().toString(), z = iso8601.time.daysInYear.toString(), m = pad(datetime_local.getMonth() + 1), M = datetime_local.getMonthName(), F = datetime_local.getFullMonthName(), dayInMonth = datetime_local.time.daysInMonth.toString(), leap = datetime_local.time.inLeapYear ? '1' : '0', X = pad(datetime_local.getFullYear(), 4), getYear = pad(datetime_local.getYear(), 2), minutes = pad(datetime_local.getMinutes()), seconds = pad(datetime_local.getSeconds()), datetime_timezone = datetime_local.time.timeZoneId, offset = Datetime_global.getUTCOffset(datetime_local.getTimezoneOffset()).replace(/UTC/, ''), B = (function () {
+    W = iso8601.time?.weekOfYear?.toString() ?? 'undefined', w = iso8601.getDay().toString(), z = iso8601.time.daysInYear.toString(), m = pad(datetime_local.getMonth() + 1), M = datetime_local.getMonthName(), F = datetime_local.getFullMonthName(), dayInMonth = datetime_local.time.daysInMonth.toString(), leap = datetime_local.time.inLeapYear ? '1' : '0', X = pad(datetime_local.getFullYear(), 4), getYear = pad(datetime_local.getYear(), 2), minutes = pad(datetime_local.getMinutes()), seconds = pad(datetime_local.getSeconds()), datetime_timezone = datetime_local.time.timeZoneId, offset = Datetime_global.getUTCOffset(datetime_local.getTimezoneOffset()).replace(/UTC/, ''), B = (function () {
         const date = datetime_local.toDate(), userTimestamp = BigInt(+date), midnightTimestamp = BigInt(date.setUTCHours(1, 0, 0, 0));
         //const MS_PER_BEAT:bigint = 86400000n / 1000n; // 86_400 ms per beat
         const elapsedMs = userTimestamp - midnightTimestamp;
