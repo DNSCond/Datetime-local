@@ -73,6 +73,8 @@ export type Datetime_global = {
     toLocaleString(locales?: string | string[] | undefined, options?: Intl.DateTimeFormatOptions | undefined): string;
     format(this: Datetime_global, string: string): string;//formatPlaceholders(this:Datetime_global):{[k:string]:string};
     withCalender(this: Datetime_global, calender?: Temporal.CalendarLike): Datetime_global;
+
+    startOfDay(this: Datetime_global): Datetime_global;
 };
 
 interface Datetime_global_constructor {
@@ -890,12 +892,13 @@ Datetime_global.prototype.format = function (this: Datetime_global, string: stri
     const iso8601: Datetime_global = datetime_local;
     const dayNumberMonth: string = pad(datetime_local.getDayNumberMonth()),
         N: string = iso8601.time.dayOfWeek.toString(),//iso8601.time.dayOfWeek
-        W: string = iso8601.time?.weekOfYear?.toString()??'undefined',
+        W: string = iso8601.time?.weekOfYear?.toString() ?? 'undefined',
         w: string = iso8601.getDay().toString(),
         z: string = iso8601.time.daysInYear.toString(),
         m: string = pad(datetime_local.getMonth() + 1),
         M: string = datetime_local.getMonthName(),
         F: string = datetime_local.getFullMonthName(),
+        hour12: string = pad(+hour24 === 0 ? 12 : +hour24),
         dayInMonth: string = datetime_local.time.daysInMonth.toString(),
         leap: string = datetime_local.time.inLeapYear ? '1' : '0',
         X: string = pad(datetime_local.getFullYear(), 4),
@@ -904,15 +907,19 @@ Datetime_global.prototype.format = function (this: Datetime_global, string: stri
         seconds: string = pad(datetime_local.getSeconds()),
         datetime_timezone: string = datetime_local.time.timeZoneId,
         offset: string = Datetime_global.getUTCOffset(datetime_local.getTimezoneOffset()).replace(/UTC/, ''),
-        B: string = (function () {//toSwatchInternetTime
-            const date: Date = datetime_local.toDate(), userTimestamp: bigint = BigInt(+date),
-                midnightTimestamp: bigint = BigInt(date.setUTCHours(1, 0, 0, 0));
-            //const MS_PER_BEAT:bigint = 86400000n / 1000n; // 86_400 ms per beat
-            const elapsedMs: bigint = userTimestamp - midnightTimestamp;
-            return ((elapsedMs * 1000n) / 86400000n).toString().padStart(3, '0');  // Compute beats as BigInt
-        })();
-    return String(string,
-    ).replace(/\[Datetime_globalV1]/ig, 'D Y-m-d H:i:s \\U\\T\\CO (e)'
+        B: string = toSwatchInternetTime(datetime_local.toDate()),
+        microseconds: string = `${pad(datetime_local.getMilliseconds(), 3)}${pad(datetime_local.time.microsecond, 3)}`,
+        milliseconds: string = pad(datetime_local.getMilliseconds(), 3);
+    return String(string).replace(
+        /\[Datetime_globalV([12])]/ig,
+        function (_: string, group1: string,): string {
+            switch (group1) {
+                case '2':
+                    return 'D, Y-m-d H:i:s.u \\U\\T\\CO (e)';
+                default:
+                    return 'D Y-m-d H:i:s \\U\\T\\CO (e)';
+            }
+        },
     ).replace(/\[DateV1]/ig, 'D M d Y H:i:s \\U\\T\\CO (e)'
     ).replace(/\[HeaderDefault]/ig, 'D, d M Y H:i:s O (e)'
     ).replace(/\[toMYSQLi]/ig, 'Y-m-d H:i:s'
@@ -934,7 +941,7 @@ Datetime_global.prototype.format = function (this: Datetime_global, string: stri
                 case 'N':
                     return strx + +N;
                 case 'S':
-                    throw new Error('\'S\' is not supported as formatting character');
+                    return strx + ordinalSuffix(+m);
                 case 'w':
                     return strx + w;
                 case 'z':
@@ -972,6 +979,8 @@ Datetime_global.prototype.format = function (this: Datetime_global, string: stri
                     return strx + (+hour24 < 12 ? 'am' : 'pm').toUpperCase();
                 case 'B':
                     return strx + B;
+                case 'h':
+                    return strx + hour12;
                 case 'H':
                     return strx + hour24;
                 case 'i':
@@ -980,18 +989,105 @@ Datetime_global.prototype.format = function (this: Datetime_global, string: stri
                     return strx + seconds;
                 case 'O':
                     return strx + offset;
+                case 'u':
+                    return strx + microseconds;
+                case 'v':
+                    return strx + milliseconds;
                 case 'e':
                     return strx + datetime_timezone;
                 default:
-                    throw new Error('your \'' + charxater + '\' is not supported as formatting character');
+                    //('your \'' + charxater + '\' is not supported as formatting character');
+                    return strx + charxater;
             }
         }
         return strxx;
     });
+};
+export const toSwatchInternetTime = function (date: Date | number | string): string {
+    const datetime: Date = new Date(date), userTimestamp: bigint =
+            BigInt(datetime.setUTCHours(datetime.getUTCHours() + 1)),
+        midnightTimestamp: bigint = BigInt(datetime.setUTCHours(1, 0, 0, 0));
+    // const MS_PER_BEAT: bigint = 86400000n / 1000n; // 86_400 ms per beat
+    const elapsedMs: bigint = userTimestamp - midnightTimestamp;
+    return ((elapsedMs * 1000n) / 86400_000n).toString().padStart(3, '0');  // Compute beats as BigInt
 };
 Datetime_global.prototype.withCalender = function (this: Datetime_global, calender: Temporal.CalendarLike = "iso8601"): Datetime_global {
     const datetime_global: Datetime_global = new Datetime_global(this.time.epochNanoseconds, this.time.timeZoneId);
     datetime_global.time = datetime_global.time.withCalendar(calender);
     return datetime_global;
 };
+Datetime_global.prototype.startOfDay = function (this: Datetime_global): Datetime_global {
+    return new Datetime_global(this.time.startOfDay().epochNanoseconds, this.time.timeZoneId);
+};
 
+export function ordinalSuffix(value: number | bigint): string {
+    const $number: number = Number(BigInt(value)) % 100;
+    let $suffix;
+    if ($number >= 11 && $number <= 13) {
+        $suffix = 'th';
+    } else {
+        switch ($number % 10) {
+            case 1:
+                $suffix = 'st';
+                break;
+            case 2:
+                $suffix = 'nd';
+                break;
+            case 3:
+                $suffix = 'rd';
+                break;
+            default:
+                $suffix = 'th';
+                break;
+        }
+    }
+    return $suffix;
+}
+
+// export function parseNumber(string: string, base: number = 10, preference: "bigint" | "BigInt" | "number" | "Number" | 'neither' | string = 'neither'): number | bigint | null | bigint[] {
+//     let result: bigint = 0n, fractional: bigint = 0n, sign: "+" | "-" | string = '+',
+//         validChars: RegExp = /^\d+(?:[Ee]\d+)?(?:\.\d+(?:[Ee]\d+)?)?/;
+//     string = String(string).toLowerCase().trim();
+//     if (/[+-]/.test(string[0])) {
+//         sign = string[0];
+//         string = string.slice(1);
+//     }
+//     if (isNaN(base) || !Number.isSafeInteger(base) || base < 2 || base > 36) {
+//         throw new RangeError('base must be between 2 and 36.');
+//     }
+//     if (base != 10) {
+//         validChars = new RegExp(`^[_${"0123456789abcdefghijklmnopqrstuvwxyz".slice(0, base)}.]+`);
+//     }
+//     preference = String(preference).toLowerCase();
+//     const step1 = string.match(validChars)?.[0],
+//         invalid: number | null = (preference === 'number' ? NaN : null);
+//     if (step1 === undefined) {
+//         return invalid;
+//     }
+//     const step2: string[] = step1.replace(/_/, '').split(/\./),
+//         step3: string = step2[0], step4: string | undefined = step2[1],
+//         indexed: string[] = Array.from("0123456789abcdefghijklmnopqrstuvwxyz");
+//     if (step2.length > 2) {
+//         return invalid;
+//     }
+//     const length: bigint = BigInt(step3.length);
+//     for (let i = length - 1n; i >= 0n; i--) {
+//         const stepResult: bigint = BigInt(indexed.indexOf(step3[Number(i)]));
+//         // result += stepResult === 0n ? 0n : ((stepResult*1n) ** stepResult);
+//         // console.log(length - i, length, i, ((stepResult * 10n) ** (length - i)));
+//         result += ((stepResult * 10n) ** (length - i));
+//     }
+//     if (step4 !== undefined) {
+//         // let index: number = step4.length - 1;
+//         // for (let i = index; i >= 0; i--) {
+//         //     const stepResult: bigint = BigInt(indexed.indexOf(step4[i]));
+//         //     fractional += stepResult === 0n ? 0n : ((stepResult*10n) ** stepResult);
+//         // }
+//     }
+//     switch (preference) {
+//         case "number":
+//             return Number(`${sign}${result}.${fractional}`);
+//         case "bigint":
+//             return BigInt(`${sign}${result}`);
+//         default:
+// return [BigInt(`${sign}${result}`), BigInt(`${sign}${fractional}`)];}}

@@ -750,13 +750,15 @@ Datetime_global.prototype.format = function (string) {
     const hour24 = pad(datetime_local.getHours()), dayName = datetime_local.getDayName();
     const iso8601 = datetime_local;
     const dayNumberMonth = pad(datetime_local.getDayNumberMonth()), N = iso8601.time.dayOfWeek.toString(), //iso8601.time.dayOfWeek
-    W = iso8601.time?.weekOfYear?.toString() ?? 'undefined', w = iso8601.getDay().toString(), z = iso8601.time.daysInYear.toString(), m = pad(datetime_local.getMonth() + 1), M = datetime_local.getMonthName(), F = datetime_local.getFullMonthName(), dayInMonth = datetime_local.time.daysInMonth.toString(), leap = datetime_local.time.inLeapYear ? '1' : '0', X = pad(datetime_local.getFullYear(), 4), getYear = pad(datetime_local.getYear(), 2), minutes = pad(datetime_local.getMinutes()), seconds = pad(datetime_local.getSeconds()), datetime_timezone = datetime_local.time.timeZoneId, offset = Datetime_global.getUTCOffset(datetime_local.getTimezoneOffset()).replace(/UTC/, ''), B = (function () {
-        const date = datetime_local.toDate(), userTimestamp = BigInt(+date), midnightTimestamp = BigInt(date.setUTCHours(1, 0, 0, 0));
-        //const MS_PER_BEAT:bigint = 86400000n / 1000n; // 86_400 ms per beat
-        const elapsedMs = userTimestamp - midnightTimestamp;
-        return ((elapsedMs * 1000n) / 86400000n).toString().padStart(3, '0'); // Compute beats as BigInt
-    })();
-    return String(string).replace(/\[Datetime_globalV1]/ig, 'D Y-m-d H:i:s \\U\\T\\CO (e)').replace(/\[DateV1]/ig, 'D M d Y H:i:s \\U\\T\\CO (e)').replace(/\[HeaderDefault]/ig, 'D, d M Y H:i:s O (e)').replace(/\[toMYSQLi]/ig, 'Y-m-d H:i:s').replace(/\[B]/ig, 'D, @B (Y-m-d H:i:s)').replace(/\\*[a-zA-Z]/ig, function (substring) {
+    W = iso8601.time?.weekOfYear?.toString() ?? 'undefined', w = iso8601.getDay().toString(), z = iso8601.time.daysInYear.toString(), m = pad(datetime_local.getMonth() + 1), M = datetime_local.getMonthName(), F = datetime_local.getFullMonthName(), hour12 = pad(+hour24 === 0 ? 12 : +hour24), dayInMonth = datetime_local.time.daysInMonth.toString(), leap = datetime_local.time.inLeapYear ? '1' : '0', X = pad(datetime_local.getFullYear(), 4), getYear = pad(datetime_local.getYear(), 2), minutes = pad(datetime_local.getMinutes()), seconds = pad(datetime_local.getSeconds()), datetime_timezone = datetime_local.time.timeZoneId, offset = Datetime_global.getUTCOffset(datetime_local.getTimezoneOffset()).replace(/UTC/, ''), B = toSwatchInternetTime(datetime_local.toDate()), microseconds = `${pad(datetime_local.getMilliseconds(), 3)}${pad(datetime_local.time.microsecond, 3)}`, milliseconds = pad(datetime_local.getMilliseconds(), 3);
+    return String(string).replace(/\[Datetime_globalV([12])]/ig, function (_, group1) {
+        switch (group1) {
+            case '2':
+                return 'D, Y-m-d H:i:s.u \\U\\T\\CO (e)';
+            default:
+                return 'D Y-m-d H:i:s \\U\\T\\CO (e)';
+        }
+    }).replace(/\[DateV1]/ig, 'D M d Y H:i:s \\U\\T\\CO (e)').replace(/\[HeaderDefault]/ig, 'D, d M Y H:i:s O (e)').replace(/\[toMYSQLi]/ig, 'Y-m-d H:i:s').replace(/\[B]/ig, 'D, @B (Y-m-d H:i:s)').replace(/\\*[a-zA-Z]/ig, function (substring) {
         const strxx = substring.replace(/\\\\/g, '\\').slice(-1);
         if (substring.length % 2 !== 0) {
             const strx = strxx.replace(/[^\\]/g, ''), charxater = substring.replace(/\\/g, '');
@@ -772,7 +774,7 @@ Datetime_global.prototype.format = function (string) {
                 case 'N':
                     return strx + +N;
                 case 'S':
-                    throw new Error('\'S\' is not supported as formatting character');
+                    return strx + ordinalSuffix(+m);
                 case 'w':
                     return strx + w;
                 case 'z':
@@ -810,6 +812,8 @@ Datetime_global.prototype.format = function (string) {
                     return strx + (+hour24 < 12 ? 'am' : 'pm').toUpperCase();
                 case 'B':
                     return strx + B;
+                case 'h':
+                    return strx + hour12;
                 case 'H':
                     return strx + hour24;
                 case 'i':
@@ -818,17 +822,55 @@ Datetime_global.prototype.format = function (string) {
                     return strx + seconds;
                 case 'O':
                     return strx + offset;
+                case 'u':
+                    return strx + microseconds;
+                case 'v':
+                    return strx + milliseconds;
                 case 'e':
                     return strx + datetime_timezone;
                 default:
-                    throw new Error('your \'' + charxater + '\' is not supported as formatting character');
+                    //('your \'' + charxater + '\' is not supported as formatting character');
+                    return strx + charxater;
             }
         }
         return strxx;
     });
+};
+export const toSwatchInternetTime = function (date) {
+    const datetime = new Date(date), userTimestamp = BigInt(datetime.setUTCHours(datetime.getUTCHours() + 1)), midnightTimestamp = BigInt(datetime.setUTCHours(1, 0, 0, 0));
+    // const MS_PER_BEAT: bigint = 86400000n / 1000n; // 86_400 ms per beat
+    const elapsedMs = userTimestamp - midnightTimestamp;
+    return ((elapsedMs * 1000n) / 86400000n).toString().padStart(3, '0'); // Compute beats as BigInt
 };
 Datetime_global.prototype.withCalender = function (calender = "iso8601") {
     const datetime_global = new Datetime_global(this.time.epochNanoseconds, this.time.timeZoneId);
     datetime_global.time = datetime_global.time.withCalendar(calender);
     return datetime_global;
 };
+Datetime_global.prototype.startOfDay = function () {
+    return new Datetime_global(this.time.startOfDay().epochNanoseconds, this.time.timeZoneId);
+};
+export function ordinalSuffix(value) {
+    const $number = Number(BigInt(value)) % 100;
+    let $suffix;
+    if ($number >= 11 && $number <= 13) {
+        $suffix = 'th';
+    }
+    else {
+        switch ($number % 10) {
+            case 1:
+                $suffix = 'st';
+                break;
+            case 2:
+                $suffix = 'nd';
+                break;
+            case 3:
+                $suffix = 'rd';
+                break;
+            default:
+                $suffix = 'th';
+                break;
+        }
+    }
+    return $suffix;
+}

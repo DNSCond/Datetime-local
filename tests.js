@@ -1,5 +1,5 @@
 // import the library
-import {Datetime_global} from "./Datetime_global.js";
+import {/*Datetime_global*/parseNumber} from "./Datetime_global.js";
 // the Datetime_global is very specific in its construction.
 // meaning Datetime_global.fromComponentsUTC is used to
 // construct a Datetime_global, the components are to be specified in UTC timezone
@@ -8,16 +8,13 @@ import {Datetime_global} from "./Datetime_global.js";
 // construct the `Datetime_global`
 // let time = (new Datetime_global(Datetime_global.fromComponentsUTC(
 //        70, 3, 5, 14, 30, 56)));
-let time = new Datetime_global(Date.now());
+//let time = (new Datetime_global(Date.now(), 'UTC')).startOfDay();
 //.toTimezone('UTC')
 // console.log(time.toString());
 // console.log(time.getDayName());
 // console.log(time.getMonthName());
 // console.log(time.getFullMonthName());
-console.log();
-console.log(time.format('[Datetime_globalV1]'));
-console.log(time.format('[B]'));
-console.log();
+
 // console.log(time.format('[DateV1]'));
 // console.log(time.format('[HeaderDefault]'));
 // console.log();
@@ -31,3 +28,5 @@ console.log();
 // console.log(time.format('[DateV1]'));
 // console.log(time.format('[HeaderDefault]'));
 // console.log();
+console.log(parseNumber('0'));
+console.log(parseNumber('1234567890'));
