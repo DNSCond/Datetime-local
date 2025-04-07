@@ -748,7 +748,7 @@ Datetime_global.prototype.format = function (string) {
         return (numberToPad < 0 ? '-' : (plusIfPositive ? '+' : '')) + String(Math.abs(numberToPad)).padStart(Number(number), '0');
     }, datetime_local = this.withCalender();
     const hour24 = pad(datetime_local.getHours()), dayName = datetime_local.getDayName();
-    const iso8601 = datetime_local;
+    const iso8601 = datetime_local, dayNameFull = datetime_local.getFullDayName();
     const dayNumberMonth = pad(datetime_local.getDayNumberMonth()), N = iso8601.time.dayOfWeek.toString(), //iso8601.time.dayOfWeek
     W = iso8601.time?.weekOfYear?.toString() ?? 'undefined', w = iso8601.getDay().toString(), z = iso8601.time.daysInYear.toString(), m = pad(datetime_local.getMonth() + 1), M = datetime_local.getMonthName(), F = datetime_local.getFullMonthName(), hour12 = pad(+hour24 === 0 ? 12 : +hour24), dayInMonth = datetime_local.time.daysInMonth.toString(), leap = datetime_local.time.inLeapYear ? '1' : '0', X = pad(datetime_local.getFullYear(), 4), getYear = pad(datetime_local.getYear(), 2), minutes = pad(datetime_local.getMinutes()), seconds = pad(datetime_local.getSeconds()), datetime_timezone = datetime_local.time.timeZoneId, offset = Datetime_global.getUTCOffset(datetime_local.getTimezoneOffset()).replace(/UTC/, ''), B = toSwatchInternetTime(datetime_local.toDate()), microseconds = `${pad(datetime_local.getMilliseconds(), 3)}${pad(datetime_local.time.microsecond, 3)}`, milliseconds = pad(datetime_local.getMilliseconds(), 3);
     return String(string).replace(/\[Datetime_globalV([12])]/ig, function (_, group1) {
@@ -770,7 +770,7 @@ Datetime_global.prototype.format = function (string) {
                 case 'j':
                     return strx + +dayNumberMonth;
                 case 'l':
-                    return strx + dayName;
+                    return strx + dayNameFull;
                 case 'N':
                     return strx + +N;
                 case 'S':

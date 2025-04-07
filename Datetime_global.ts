@@ -889,7 +889,7 @@ Datetime_global.prototype.format = function (this: Datetime_global, string: stri
         return (numberToPad < 0 ? '-' : (plusIfPositive ? '+' : '')) + String(Math.abs(numberToPad)).padStart(Number(number), '0');
     }, datetime_local: Datetime_global = this.withCalender();
     const hour24: string = pad(datetime_local.getHours()), dayName: string = datetime_local.getDayName();
-    const iso8601: Datetime_global = datetime_local;
+    const iso8601: Datetime_global = datetime_local, dayNameFull: string = datetime_local.getFullDayName();
     const dayNumberMonth: string = pad(datetime_local.getDayNumberMonth()),
         N: string = iso8601.time.dayOfWeek.toString(),//iso8601.time.dayOfWeek
         W: string = iso8601.time?.weekOfYear?.toString() ?? 'undefined',
@@ -937,7 +937,7 @@ Datetime_global.prototype.format = function (this: Datetime_global, string: stri
                 case 'j':
                     return strx + +dayNumberMonth;
                 case 'l':
-                    return strx + dayName;
+                    return strx + dayNameFull;
                 case 'N':
                     return strx + +N;
                 case 'S':
