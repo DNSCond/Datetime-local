@@ -1,6 +1,5 @@
 "use strict";
 import { Datetime_local } from "./Datetime_local.js";
-// import {Temporal} from '@js-temporal/polyfill';
 import { Temporal } from 'temporal-polyfill';
 /**
  * constructs a Datetime_global or Datetime_global string based on different conditions
@@ -101,7 +100,7 @@ Datetime_global.zerons = function () {
  * default `true`
  * @returns {number} the number of milliseconds elapsed since the epoch, or NaN on failure
  */
-Datetime_global.parse = Datetime_local.parse;
+Datetime_global.parse = Date.parse;
 Datetime_global.prototype[Symbol.toStringTag] = Datetime_global.name;
 /**
  * converts this Datetime_global to Date
@@ -146,6 +145,8 @@ Datetime_global.prototype.setTime = function (timestamp) {
  * formats a string like Tue Jun 25 2024 14:30:00 UTC+0000 (UTC) based on the date contained
  *
  * note that you can also use this with Date. you just have tto attach something with time.timezoneId
+ *
+ * php: `D M d Y H:i:s \U\T\CO (e)`
  * @returns {string} formats a string like Tue Jun 25 2024 14:30:00 UTC+0000 (UTC) based on the date contained
  */
 Datetime_global.prototype.toString = function () {
@@ -620,10 +621,10 @@ Datetime_global.prototype.setUTCHours = function (hours, minutes, seconds, milli
 Datetime_global.prototype.toTemporalZonedDateTime = function () {
     return this.time;
 };
-Datetime_global.daynames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-Datetime_global.monthnames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-Datetime_global.daynamesFull = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-Datetime_global.monthnamesFull = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+// Datetime_global.daynames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+// Datetime_global.monthnames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+// Datetime_global.daynamesFull = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+// Datetime_global.monthnamesFull = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 // custom
 /**
  * sets the Nanoseconds and optionally the microseconds
@@ -659,16 +660,59 @@ Datetime_global.getUTCOffset = function (offset) {
     return `UTC${sign}${hours}${minutes}`;
 };
 /**
- * converts all html `<time>` tags to an string representation of the `Datetime_global`
- * using Date.parse to parse its time.dateTime attribute
- * @param timetags preferably a result of document.querySelector.
+ * Converts all HTML `<time>` tags' `dateTime` attributes to a string representation.
+ * Uses the `data-datetime-global-format` attribute to determine the format:
+ * - `offsetFromNow` Time offset from now (e.g., "now", "in 30 seconds", "5 minutes ago").
+ *
+ * uses Date.parse to parse its time.dateTime attribute
+ * @param timetags A NodeList or Array of HTMLTimeElement, typically from `document.querySelectorAll`
+ * with `time` as tag.
  */
 Datetime_global.htmlToCurrentTime = function (timetags = []) {
     Array.from(timetags).forEach(function (each) {
-        const tz = each.getAttribute('data-iana-timezone') ?? Temporal.Now.timeZoneId(), d = new Datetime_global(Date.parse(each.dateTime), tz);
-        each.innerText = d.toString();
+        const tz = each.getAttribute('data-iana-timezone') ?? Temporal.Now.timeZoneId(), d = new Datetime_global(Date.parse(each.dateTime), tz), f = each.getAttribute('data-datetime-global-format') ?? 'D M d Y H:i:s \\U\\T\\CO (e)';
+        if (/^\[[a-zA-Z0-9\-_]+]$/.test(f)) {
+            switch (f) {
+                case "[offsetFromNow]":
+                    each.innerText = formatOffsetFromNow(d.toDate());
+                    break;
+                default:
+                    each.innerText = "Invalid Date";
+                    break;
+            }
+        }
+        each.innerText = d.format(f);
     });
 };
+/**
+ * Formats the time difference between now and the given date as a human-readable string.
+ * @param date The timestamp (in milliseconds) to compare against the current time.
+ * @returns A string like "now", "in 30 seconds", or "5 minutes ago".
+ */
+export function formatOffsetFromNow(date) {
+    const diffMs = (+date) - Date.now();
+    const absDiffMs = Math.abs(diffMs);
+    const isFuture = diffMs > 0;
+    const seconds = Math.floor(absDiffMs / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    if (absDiffMs < 1000) {
+        return "now";
+    }
+    else if (seconds < 60) {
+        return `${isFuture ? "in" : ""} ${seconds} second${seconds === 1 ? "" : "s"} ${isFuture ? "" : "ago"}`;
+    }
+    else if (minutes < 60) {
+        return `${isFuture ? "in" : ""} ${minutes} minute${minutes === 1 ? "" : "s"} ${isFuture ? "" : "ago"}`;
+    }
+    else if (hours < 24) {
+        return `${isFuture ? "in" : ""} ${hours} hour${hours === 1 ? "" : "s"} ${isFuture ? "" : "ago"}`;
+    }
+    else {
+        return `${isFuture ? "in" : ""} ${days} day${days === 1 ? "" : "s"} ${isFuture ? "" : "ago"}`;
+    }
+}
 /**
  * applies the UTC time to the `Datetime_global`
  *
