@@ -841,8 +841,29 @@ Datetime_global.getUTCOffset = function (offset) {
  * // Updates innerText to e.g., "in 5 days"
  */
 Datetime_global.htmlToCurrentTime = function (timetags = []) {
+    const now = Temporal.Now.zonedDateTimeISO();
     Array.from(timetags).forEach(function (each) {
         const tz = each.getAttribute('data-iana-timezone') ?? Temporal.Now.timeZoneId(), d = new Datetime_global(Date.parse(each.dateTime), tz), f = each.getAttribute('data-datetime-global-format') ?? 'D M d Y H:i:s \\U\\T\\CO (e)';
+        switch (f) {
+            case "[TemporalOffset]":
+                {
+                    const target = d.toTemporalZonedDateTime();
+                    const isFuture = target.epochMilliseconds > now.epochMilliseconds, largestUnit = 'days';
+                    const duration = isFuture ? now.until(target, { largestUnit }) : target.until(now, { largestUnit });
+                    const parts = [];
+                    if (duration.days)
+                        parts.push(`${duration.days} day${duration.days !== 1 ? 's' : ''}`);
+                    if (duration.hours)
+                        parts.push(`${duration.hours} hour${duration.hours !== 1 ? 's' : ''}`);
+                    if (duration.minutes)
+                        parts.push(`${duration.minutes} minute${duration.minutes !== 1 ? 's' : ''}`);
+                    if (duration.seconds && parts.length === 0)
+                        parts.push(`${duration.seconds} second${duration.seconds !== 1 ? 's' : ''}`);
+                    const join = parts.map(s => s.trim()).join(', ');
+                    each.innerText = isFuture ? 'in ' + join : join + ' ago';
+                }
+                return;
+        }
         each.innerText = d.format(f);
     });
 };
