@@ -128,6 +128,17 @@ Datetime_global.now = function () {
     return Temporal.Now.instant().epochNanoseconds;
 };
 /**
+ * Returns the current timestamp as nanoseconds since the epoch (January 1, 1970, 00:00:00 UTC).
+ * @returns The nanoseconds since the epoch.
+ * @example
+ * console.log(Datetime_global.now()); // e.g., 1745193600000000000n
+ */
+Datetime_global.nowInTimezone = function (timezone) {
+    if (timezone)
+        return new Datetime_global(Datetime_global.now(), timezone);
+    return new Datetime_global;
+};
+/**
  * Returns the current timestamp in milliseconds since the epoch, with sub-second components (milliseconds, microseconds, nanoseconds) set to 0.
  * @returns The milliseconds since the epoch.
  * @example
@@ -171,9 +182,12 @@ Datetime_global.prototype.toDate = function () {
  * console.log(dt.toTimezone("Asia/Tokyo").toString());
  * // "Fri Apr 18 2025 09:00:00 UTC+0900 (Asia/Tokyo)"
  */
-Datetime_global.prototype.toTimezone = function (timezoneId) {
+Datetime_global.prototype.toTimezone = Datetime_global.prototype.withTimezone = function (timezoneId) {
     // hiostory
     return new Datetime_global(this.time.epochNanoseconds, timezoneId);
+};
+Datetime_global.prototype.getTimezoneId = function () {
+    return this.time.timeZoneId;
 };
 /**
  * Returns the timestamp in milliseconds since the epoch (January 1, 1970, 00:00:00 UTC).
@@ -1297,8 +1311,12 @@ Datetime_global.prototype.clone = function () {
  * const dt = new Datetime_global(new Date(2025, 4, 18, 15, 30), "UTC");
  * dt.startOfDay().toISOString(); // "2025-04-18T00:00:00.000Z"
  */
-Datetime_global.prototype.startOfDay = function () {
-    return new Datetime_global(this.time.startOfDay().epochNanoseconds, this.time.timeZoneId);
+Datetime_global.prototype.startOfDay = function (timezone) {
+    const zdt = (timezone ? this.toTimezone(timezone) : this).time.startOfDay().epochNanoseconds;
+    return new Datetime_global(zdt, this.time.timeZoneId);
+};
+Datetime_global.prototype.getTimestamp = function () {
+    return this.time.epochNanoseconds;
 };
 export const ordinalSuffix = function (value) {
     const $number = Number(BigInt(value)) % 100;
@@ -1323,4 +1341,120 @@ export const ordinalSuffix = function (value) {
         }
     }
     return $suffix;
+};
+// export class DatetimeElement {
+//     private time: HTMLTimeElement;
+//
+//     /**
+//      * Creates a DatetimeElement instance.
+//      * @param time - The HTML <time> element to manage.
+//      * @throws TypeError if the element is not a valid <time> element or its dateTime attribute cannot be parsed with Date.parse.
+//      */
+//     constructor(time: HTMLTimeElement) {
+//         if (!(time instanceof HTMLTimeElement)) {
+//             throw new TypeError('Input must be an HTMLTimeElement');
+//         }
+//         const parsed: number = Date.parse(time.dateTime);
+//         if (parsed !== parsed) {
+//             throw new TypeError('The <time> element must have a valid dateTime attribute, which points to a valid instant in time');
+//         }
+//         this.time = time;
+//     }
+//
+//     /**
+//      * Updates the <time> element's content and attributes with the current date-time.
+//      * @param titleFormat - Optional format for the title attribute (defaults to '(D M d Y H:i:s \\U\\T\\CO (e))').
+//      * @returns The formatted string used for innerText.
+//      * @throws Error if the dateTime, timezone, or format is invalid.
+//      */
+//     update(titleFormat: string = '(D M d Y H:i:s \\U\\T\\CO (e))'): string {
+//         // const date: Datetime_global = new Datetime_global(this.time.dateTime,
+//         //         this.time.dataset.ianaTimezone ?? Temporal.Now.timeZoneId()),
+//         //     format: string = this.time.dataset.timeFormat ?? '[offsetFromNow]';
+//         // this.time.setAttribute('title', date.format(titleFormat));
+//         // this.time.innerText = date.format(format);
+//         // return this.time.outerHTML;
+//         try {
+//             const timezone: string = this.time.dataset.ianaTimezone ?? Temporal.Now.timeZoneId();
+//             const date: Datetime_global = new Datetime_global(this.time.dateTime, timezone);
+//             const format: string = this.time.dataset.timeFormat ?? '[offsetFromNow]';
+//
+//             // Update dateTime attribute for accessibility
+//             this.time.setAttribute('datetime', date.toDate().toISOString());
+//             // Update title with detailed format
+//             this.time.setAttribute('title', date.format(titleFormat));
+//             // Update innerText with user-specified or default format
+//             this.time.innerText = date.format(format);
+//
+//             return this.time.outerHTML;
+//         } catch (error) {
+//             console.error(`Failed to update DatetimeElement: ${(error as Error).message}`);
+//             this.time.innerText = 'Invalid date';
+//             return 'Invalid date';
+//         }
+//     }
+//
+//     autorun(interval: number): number {
+//         const self = this;
+//         return setInterval(function () {
+//             self.update();
+//         }, interval);
+//     }
+//
+//     /**
+//      * Gets the underlying <time> element.
+//      */
+//     get element(): HTMLTimeElement {
+//         return this.time;
+//     }
+// }
+Datetime_global.prototype.until = function (other) {
+    const zdt = new Datetime_global(other, this.getTimezoneId());
+    return this.time.until(zdt.toTemporalZonedDateTime());
+};
+Datetime_global.prototype.since = function (other) {
+    const zdt = new Datetime_global(other, this.getTimezoneId());
+    return this.time.since(zdt.toTemporalZonedDateTime());
+};
+export const DurationToHumanString = function (roundToOptions = { smallestUnit: 'nanoseconds' }) {
+    const rounded = roundToOptions.round ? this.round(roundToOptions) : this, constructed = [];
+    if (rounded.years !== 0)
+        constructed.push(` ${rounded.years} year${Math.abs(rounded.years) === 1 ? '' : 's'}`);
+    if (rounded.months !== 0)
+        constructed.push(` ${rounded.months} month${Math.abs(rounded.months) === 1 ? '' : 's'}`);
+    if (rounded.days !== 0)
+        constructed.push(` ${rounded.days} day${Math.abs(rounded.days) === 1 ? '' : 's'}`);
+    if (rounded.hours !== 0)
+        constructed.push(` ${rounded.hours} hour${Math.abs(rounded.hours) === 1 ? '' : 's'}`);
+    if (rounded.minutes !== 0)
+        constructed.push(` ${rounded.minutes} minute${Math.abs(rounded.minutes) === 1 ? '' : 's'}`);
+    if (rounded.seconds !== 0)
+        constructed.push(` ${rounded.seconds} second${Math.abs(rounded.seconds) === 1 ? '' : 's'}`);
+    if (constructed.length === 0)
+        return "0 seconds";
+    if (constructed.length === 1)
+        return constructed[0].replace(/^\s+/, '');
+    if (typeof roundToOptions.largestUnits === 'number') {
+        if (roundToOptions.largestUnits === Infinity) {
+        }
+        else if (roundToOptions.largestUnits > 0) {
+            constructed.length = roundToOptions.largestUnits;
+        }
+    }
+    const popped = constructed.pop();
+    return `${constructed}, and${popped}`.replace(/^\s+/, '');
+};
+DurationToHumanString.ToHumanString = function (relativeTo, smallestUnit = 'seconds', largestUnit = 'years') {
+    const Symbol_null = Symbol.for('null'), round = (relativeTo ?? Symbol_null) !== Symbol_null;
+    relativeTo = (new Datetime_global(relativeTo)).toTemporalZonedDateTime();
+    return DurationToHumanString.call(this, { relativeTo, smallestUnit, largestUnit, round });
+};
+DurationToHumanString.ToHistoryString = function (relativeTo, largestUnits, smallestUnit = 'seconds') {
+    largestUnits = largestUnits ?? Infinity;
+    const Symbol_null = Symbol.for('null'), round = (relativeTo ?? Symbol_null) !== Symbol_null;
+    relativeTo = (new Datetime_global(relativeTo)).toTemporalZonedDateTime();
+    return DurationToHumanString.call(this, {
+        relativeTo, smallestUnit, largestUnits,
+        round, largestUnit: 'years',
+    });
 };

@@ -1,7 +1,17 @@
 "use strict"; // [^\x00-\x7F]
 import {Datetime_local} from "./Datetime_local.js";
-import {Temporal} from 'temporal-polyfill'
+import {Temporal} from 'temporal-polyfill';
+// npm: https://www.npmjs.com/package/datetime_global
+// github: https://github.com/Qin2007/Datetime-local
 
+export type constructorInput =
+    | Temporal.ZonedDateTime
+    | Temporal.Instant
+    | Datetime_global
+    | Date
+    | bigint
+    | number
+    | string;
 export type Datetime_global = {
     constructor: Datetime_global_constructor,
     time: Temporal.ZonedDateTime,
@@ -15,6 +25,7 @@ export type Datetime_global = {
     // convertion utils
     toDate(this: Datetime_global): Date,
     toTimezone(this: Datetime_global, timezoneId: Temporal.TimeZoneLike): Datetime_global,
+    withTimezone(this: Datetime_global, timezoneId: Temporal.TimeZoneLike): Datetime_global,
     // builtin-proxy
     getDay(this: Datetime_global): number;
     getYear(this: Datetime_global): number;
@@ -73,19 +84,22 @@ export type Datetime_global = {
     format(this: Datetime_global, string: string): string;//formatPlaceholders(this:Datetime_global):{[k:string]:string};
     withCalender(this: Datetime_global, calender?: Temporal.CalendarLike): Datetime_global;
 
-    startOfDay(this: Datetime_global): Datetime_global;
+    startOfDay(this: Datetime_global, timezone?: Temporal.TimeZoneLike): Datetime_global;
     templateFormat(this: Datetime_global, strings: TemplateStringsArray, ...expressions: unknown[]): string;
     clone(this: Datetime_global): Datetime_global;
+    getTimezoneId(this: Datetime_global): string;
+    getTimestamp(this: Datetime_global): bigint;
+
+    until(this: Datetime_global, other: constructorInput): Temporal.Duration;
+    since(this: Datetime_global, other: constructorInput): Temporal.Duration;
 };
 
 interface Datetime_global_constructor {
     prototype: Datetime_global;
 
-    new(from?: Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local | bigint | number | string | undefined,
-        timezoneId?: Temporal.TimeZoneLike | string): Datetime_global,
+    new(from?: constructorInput | Datetime_local, timezoneId?: Temporal.TimeZoneLike | string | undefined): Datetime_global,
 
-    (from?: Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local | bigint | number | string | undefined,
-     timezoneId?: Temporal.TimeZoneLike | string): string,
+    (from?: constructorInput | Datetime_local, timezoneId?: Temporal.TimeZoneLike | string | undefined): string,
 
     parse_strict(string: string): Temporal.ZonedDateTime;
 
@@ -98,6 +112,8 @@ interface Datetime_global_constructor {
     zeroms(): number,
 
     zerons(): bigint,
+
+    nowInTimezone(timezone?: Temporal.TimeZoneLike): Datetime_global,
 
     fromComponentsUTC(
         year?: number | undefined, month?: number, date?: number,
@@ -164,7 +180,7 @@ interface Datetime_global_constructor {
  * @function
  */
 export const Datetime_global: Datetime_global_constructor = function (
-    this: Datetime_global, from: Temporal.ZonedDateTime | Temporal.Instant | Date | Datetime_global | Datetime_local | bigint | number | string | undefined = undefined,
+    this: Datetime_global, from: constructorInput | Datetime_local | undefined = undefined,
     timezoneId: string = Temporal.Now.timeZoneId(),
 ): Datetime_global | string | void {
     let timestamp: number | bigint, isBigInt: boolean = false;
@@ -196,6 +212,7 @@ export const Datetime_global: Datetime_global_constructor = function (
         return Datetime_global.prototype.toString.call(Object.assign({time}, Datetime_global.prototype));
     }
 } as Datetime_global_constructor;
+
 
 /**
  * Creates a UTC timestamp from date-time components, returning nanoseconds since the epoch.
@@ -255,6 +272,18 @@ Datetime_global.parse_strict = function (string: string): Temporal.ZonedDateTime
 Datetime_global.now = function (): bigint {
     return Temporal.Now.instant().epochNanoseconds;
 };
+
+/**
+ * Returns the current timestamp as nanoseconds since the epoch (January 1, 1970, 00:00:00 UTC).
+ * @returns The nanoseconds since the epoch.
+ * @example
+ * console.log(Datetime_global.now()); // e.g., 1745193600000000000n
+ */
+Datetime_global.nowInTimezone = function (timezone?: Temporal.TimeZoneLike): Datetime_global {
+    if (timezone) return new Datetime_global(Datetime_global.now(), timezone);
+    return new Datetime_global;
+};
+
 /**
  * Returns the current timestamp in milliseconds since the epoch, with sub-second components (milliseconds, microseconds, nanoseconds) set to 0.
  * @returns The milliseconds since the epoch.
@@ -301,10 +330,15 @@ Datetime_global.prototype.toDate = function (): Date {
  * console.log(dt.toTimezone("Asia/Tokyo").toString());
  * // "Fri Apr 18 2025 09:00:00 UTC+0900 (Asia/Tokyo)"
  */
-Datetime_global.prototype.toTimezone = function (this: Datetime_global, timezoneId: Temporal.TimeZoneLike): Datetime_global {
+Datetime_global.prototype.toTimezone = Datetime_global.prototype.withTimezone = function (this: Datetime_global, timezoneId: Temporal.TimeZoneLike): Datetime_global {
     // hiostory
     return new Datetime_global(this.time.epochNanoseconds, timezoneId);
 };
+
+Datetime_global.prototype.getTimezoneId = function (this: Datetime_global): string {
+    return this.time.timeZoneId;
+};
+
 /**
  * Returns the timestamp in milliseconds since the epoch (January 1, 1970, 00:00:00 UTC).
  * @returns The milliseconds since the epoch.
@@ -315,6 +349,7 @@ Datetime_global.prototype.toTimezone = function (this: Datetime_global, timezone
 Datetime_global.prototype.valueOf = function (this: Datetime_global): number {
     return this.time.epochMilliseconds;
 };
+
 /**
  *
  * Returns the timestamp in milliseconds since the epoch (January 1, 1970, 00:00:00 UTC).
@@ -1467,11 +1502,13 @@ export const toSwatchInternetTime = function (date: Date | number | string): str
     const elapsedMs: bigint = userTimestamp - midnightTimestamp;
     return ((elapsedMs * 1000n) / 86400_000n).toString().padStart(3, '0');  // Compute beats as BigInt
 };
+
 Datetime_global.prototype.withCalender = function (this: Datetime_global, calender: Temporal.CalendarLike = "iso8601"): Datetime_global {
     const datetime_global: Datetime_global = new Datetime_global(this.time.epochNanoseconds, this.time.timeZoneId);
     datetime_global.time = datetime_global.time.withCalendar(calender);
     return datetime_global;
 };
+
 /**
  * Creates a new Datetime_global instance with the same date-time and timezone.
  * @returns A new Datetime_global instance.
@@ -1491,8 +1528,12 @@ Datetime_global.prototype.clone = function (this: Datetime_global): Datetime_glo
  * const dt = new Datetime_global(new Date(2025, 4, 18, 15, 30), "UTC");
  * dt.startOfDay().toISOString(); // "2025-04-18T00:00:00.000Z"
  */
-Datetime_global.prototype.startOfDay = function (this: Datetime_global): Datetime_global {
-    return new Datetime_global(this.time.startOfDay().epochNanoseconds, this.time.timeZoneId);
+Datetime_global.prototype.startOfDay = function (this: Datetime_global, timezone?: Temporal.TimeZoneLike): Datetime_global {
+    const zdt: bigint = (timezone ? this.toTimezone(timezone) : this).time.startOfDay().epochNanoseconds;
+    return new Datetime_global(zdt, this.time.timeZoneId);
+};
+Datetime_global.prototype.getTimestamp = function (this: Datetime_global): bigint {
+    return this.time.epochNanoseconds;
 };
 
 export const ordinalSuffix = function (value: number | bigint): string {
@@ -1585,3 +1626,65 @@ export const ordinalSuffix = function (value: number | bigint): string {
 //         return this.time;
 //     }
 // }
+Datetime_global.prototype.until = function (this: Datetime_global, other: constructorInput): Temporal.Duration {
+    const zdt: Datetime_global = new Datetime_global(other, this.getTimezoneId());
+    return this.time.until(zdt.toTemporalZonedDateTime());
+};
+Datetime_global.prototype.since = function (this: Datetime_global, other: constructorInput): Temporal.Duration {
+    const zdt: Datetime_global = new Datetime_global(other, this.getTimezoneId());
+    return this.time.since(zdt.toTemporalZonedDateTime());
+};
+type durationOptions = Temporal.DurationRoundTo & { round?: boolean, largestUnits?: number };
+export const DurationToHumanString = function (
+    this: Temporal.Duration, roundToOptions: durationOptions = {smallestUnit: 'nanoseconds'}): string {
+    const rounded: Temporal.Duration = roundToOptions.round ? this.round(roundToOptions as Exclude<durationOptions,
+        { round?: boolean, largestUnits?: number }>) : this, constructed: string[] = [];
+    if (rounded.years !== 0) constructed.push(` ${rounded.years} year${Math.abs(rounded.years) === 1 ? '' : 's'}`);
+    if (rounded.months !== 0) constructed.push(` ${rounded.months} month${Math.abs(rounded.months) === 1 ? '' : 's'}`);
+    if (rounded.days !== 0) constructed.push(` ${rounded.days} day${Math.abs(rounded.days) === 1 ? '' : 's'}`);
+    if (rounded.hours !== 0) constructed.push(` ${rounded.hours} hour${Math.abs(rounded.hours) === 1 ? '' : 's'}`);
+    if (rounded.minutes !== 0) constructed.push(` ${rounded.minutes} minute${Math.abs(rounded.minutes) === 1 ? '' : 's'}`);
+    if (rounded.seconds !== 0) constructed.push(` ${rounded.seconds} second${Math.abs(rounded.seconds) === 1 ? '' : 's'}`);
+    if (constructed.length === 0) return "0 seconds";
+    if (constructed.length === 1) return constructed[0].replace(/^\s+/, '');
+    if (typeof roundToOptions.largestUnits === 'number') {
+        if (roundToOptions.largestUnits === Infinity) {
+        } else if (roundToOptions.largestUnits > 0) {
+            constructed.length = roundToOptions.largestUnits;
+        }
+    }
+    const popped = constructed.pop();
+    return `${constructed}, and${popped}`.replace(/^\s+/, '');
+};
+export type durationString =
+    | 'years'
+    | 'year'
+    | 'months'
+    | 'month'
+    | 'hours'
+    | 'hour'
+    | 'minutes'
+    | 'minute'
+    | 'seconds'
+    | 'second';
+DurationToHumanString.ToHumanString = function (
+    this: Temporal.Duration,
+    relativeTo?: Temporal.ZonedDateTime | Datetime_global,
+    smallestUnit: durationString = 'seconds',
+    largestUnit: durationString = 'years'): string {
+    const Symbol_null = Symbol.for('null'), round: boolean = (relativeTo ?? Symbol_null) !== Symbol_null;
+    relativeTo = (new Datetime_global(relativeTo)).toTemporalZonedDateTime();
+    return DurationToHumanString.call(this, {relativeTo, smallestUnit, largestUnit, round});
+};
+DurationToHumanString.ToHistoryString = function (
+    this: Temporal.Duration,
+    relativeTo?: Temporal.ZonedDateTime | Datetime_global,
+    largestUnits?: number, smallestUnit: durationString = 'seconds'): string {
+    largestUnits = largestUnits ?? Infinity;
+    const Symbol_null = Symbol.for('null'), round: boolean = (relativeTo ?? Symbol_null) !== Symbol_null;
+    relativeTo = (new Datetime_global(relativeTo)).toTemporalZonedDateTime();
+    return DurationToHumanString.call(this, {
+        relativeTo, smallestUnit, largestUnits,
+        round, largestUnit: 'years',
+    });
+};
