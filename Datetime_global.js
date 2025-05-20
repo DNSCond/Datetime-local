@@ -1408,14 +1408,28 @@ export const ordinalSuffix = function (value) {
 //         return this.time;
 //     }
 // }
+/**
+ * undocumented, can change any version
+ * @param other
+ */
 Datetime_global.prototype.until = function (other) {
     const zdt = new Datetime_global(other, this.getTimezoneId());
     return this.time.until(zdt.toTemporalZonedDateTime());
 };
+/**
+ * undocumented, can change any version
+ * @param other
+ */
 Datetime_global.prototype.since = function (other) {
     const zdt = new Datetime_global(other, this.getTimezoneId());
     return this.time.since(zdt.toTemporalZonedDateTime());
 };
+/**
+ * undocumented, can change any version
+ * @param roundToOptions
+ * @returns {*|string}
+ * @constructor
+ */
 export const DurationToHumanString = function (roundToOptions = { smallestUnit: 'nanoseconds' }) {
     const rounded = roundToOptions.round ? this.round(roundToOptions) : this, constructed = [];
     if (rounded.years !== 0)
@@ -1438,17 +1452,33 @@ export const DurationToHumanString = function (roundToOptions = { smallestUnit: 
         if (roundToOptions.largestUnits === Infinity) {
         }
         else if (roundToOptions.largestUnits > 0) {
-            constructed.length = roundToOptions.largestUnits;
+            constructed.length = Math.min(constructed.length, roundToOptions.largestUnits);
         }
     }
     const popped = constructed.pop();
     return `${constructed}, and${popped}`.replace(/^\s+/, '');
 };
+/**
+ * undocumented, can change any version
+ * @param relativeTo
+ * @param smallestUnit
+ * @param largestUnit
+ * @returns {*|string}
+ * @constructor
+ */
 DurationToHumanString.ToHumanString = function (relativeTo, smallestUnit = 'seconds', largestUnit = 'years') {
     const Symbol_null = Symbol.for('null'), round = (relativeTo ?? Symbol_null) !== Symbol_null;
     relativeTo = (new Datetime_global(relativeTo)).toTemporalZonedDateTime();
     return DurationToHumanString.call(this, { relativeTo, smallestUnit, largestUnit, round });
 };
+/**
+ * undocumented, can change any version
+ * @param relativeTo
+ * @param largestUnits
+ * @param smallestUnit
+ * @returns {*|string}
+ * @constructor
+ */
 DurationToHumanString.ToHistoryString = function (relativeTo, largestUnits, smallestUnit = 'seconds') {
     largestUnits = largestUnits ?? Infinity;
     const Symbol_null = Symbol.for('null'), round = (relativeTo ?? Symbol_null) !== Symbol_null;

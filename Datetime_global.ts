@@ -1626,15 +1626,33 @@ export const ordinalSuffix = function (value: number | bigint): string {
 //         return this.time;
 //     }
 // }
+
+/**
+ * undocumented, can change any version
+ * @param other
+ */
 Datetime_global.prototype.until = function (this: Datetime_global, other: constructorInput): Temporal.Duration {
     const zdt: Datetime_global = new Datetime_global(other, this.getTimezoneId());
     return this.time.until(zdt.toTemporalZonedDateTime());
 };
+
+/**
+ * undocumented, can change any version
+ * @param other
+ */
 Datetime_global.prototype.since = function (this: Datetime_global, other: constructorInput): Temporal.Duration {
     const zdt: Datetime_global = new Datetime_global(other, this.getTimezoneId());
     return this.time.since(zdt.toTemporalZonedDateTime());
 };
+
 type durationOptions = Temporal.DurationRoundTo & { round?: boolean, largestUnits?: number };
+
+/**
+ * undocumented, can change any version
+ * @param roundToOptions
+ * @returns {*|string}
+ * @constructor
+ */
 export const DurationToHumanString = function (
     this: Temporal.Duration, roundToOptions: durationOptions = {smallestUnit: 'nanoseconds'}): string {
     const rounded: Temporal.Duration = roundToOptions.round ? this.round(roundToOptions as Exclude<durationOptions,
@@ -1650,7 +1668,7 @@ export const DurationToHumanString = function (
     if (typeof roundToOptions.largestUnits === 'number') {
         if (roundToOptions.largestUnits === Infinity) {
         } else if (roundToOptions.largestUnits > 0) {
-            constructed.length = roundToOptions.largestUnits;
+            constructed.length = Math.min(constructed.length, roundToOptions.largestUnits);
         }
     }
     const popped = constructed.pop();
@@ -1667,6 +1685,15 @@ export type durationString =
     | 'minute'
     | 'seconds'
     | 'second';
+
+/**
+ * undocumented, can change any version
+ * @param relativeTo
+ * @param smallestUnit
+ * @param largestUnit
+ * @returns {*|string}
+ * @constructor
+ */
 DurationToHumanString.ToHumanString = function (
     this: Temporal.Duration,
     relativeTo?: Temporal.ZonedDateTime | Datetime_global,
@@ -1676,6 +1703,15 @@ DurationToHumanString.ToHumanString = function (
     relativeTo = (new Datetime_global(relativeTo)).toTemporalZonedDateTime();
     return DurationToHumanString.call(this, {relativeTo, smallestUnit, largestUnit, round});
 };
+
+/**
+ * undocumented, can change any version
+ * @param relativeTo
+ * @param largestUnits
+ * @param smallestUnit
+ * @returns {*|string}
+ * @constructor
+ */
 DurationToHumanString.ToHistoryString = function (
     this: Temporal.Duration,
     relativeTo?: Temporal.ZonedDateTime | Datetime_global,
