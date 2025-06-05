@@ -1,11 +1,14 @@
 // import the library
-import {Datetime_global, DurationToHumanString} from "./Datetime_global.js";
-import {Temporal} from 'temporal-polyfill';
+import {Datetime_global, toNumeric, toSwatchInternetTime} from "./Datetime_global.js";
+import {ZDTDuration} from "./ZDTDuration.js";
+//import {Temporal} from 'temporal-polyfill';
+
 // the Datetime_global is very specific in its construction.
 // meaning Datetime_global.fromComponentsUTC is used to
 // construct a Datetime_global, the components are to be specified in UTC timezone
 const timestampBigIntUTC = Datetime_global.fromComponentsUTC(
-    2024, 2, 1, 5, 30, 50, 123, 456_789);
+        2024, 2, 1, 5, 30, 50, 123, 456_789),
+    now = new Date, utc = new Datetime_global(timestampBigIntUTC);
 // construct the `Datetime_global`
 let time = new Datetime_global(1745193600000000000n);
 // console.log(time.templateFormat`---
@@ -25,4 +28,16 @@ let time = new Datetime_global(1745193600000000000n);
 // FORMAT_OFFSET_FROM_NOW: ${Datetime_global.FORMAT_OFFSET_FROM_NOW};
 // ---`);
 // const left = new Datetime_global(1747686993824), right = new Datetime_global(time);
-console.log(DurationToHumanString.ToHistoryString.call(new Temporal.Duration(1, 2, 3, 4, 5, 6, 7, 8, 9, 0), +new Date, 4));
+console.log(String(ZDTDuration(80)));
+console.log();
+console.log(utc.toUTCString());
+console.log(utc.toGMTString());
+console.log();
+// console.log(utc.toDateString(), utc.toTimeString());
+// console.log(utc.toString());
+console.log(utc.toHTML_GMT());
+console.log(utc.toHTML_UTC());
+// console.log((new Datetime_global('2025-05-27T13:24:14Z')).toHTMLHistoryString());
+console.log();
+console.log(toSwatchInternetTime(new Date('2024-05')));
+console.log();

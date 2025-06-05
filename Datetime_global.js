@@ -1,12 +1,12 @@
-"use strict"; // [^\x00-\x7F]
-import { Datetime_local } from "./Datetime_local.js";
 import { Temporal } from 'temporal-polyfill';
+import { ZDTDuration } from "./ZDTDuration.js";
+"use strict"; // [^\x00-\x7F]
 /**
  * Constructs a Datetime_global instance or returns a string representation.
  * @param from - Input to initialize the date-time. Supports:
  *   - Temporal.ZonedDateTime: Used directly.
  *   - Temporal.Instant: Converted from epoch nanoseconds.
- *   - Date | Datetime_global | Datetime_local: Converted from epoch milliseconds.
+ *   - Date | Datetime_global: Converted from epoch milliseconds.
  *   - bigint: Nanoseconds since epoch.
  *   - number: Milliseconds since epoch.
  *   - string: Parsed using `Date.parse` (EcmaScript format or browser-dependent formats).
@@ -260,6 +260,17 @@ Datetime_global.prototype.toHTML = function () {
     const date = new Date(this.time.epochMilliseconds);
     return `<time datetime="${date.toISOString()}">${date}</time>`.replace(/GMT/, 'UTC');
 };
+Datetime_global.prototype.toHTML_GMT = function () {
+    const date = new Date(this.time.epochMilliseconds);
+    return `<time datetime="${date.toISOString()}">${date.toUTCString()}</time>`;
+};
+Datetime_global.prototype.toHTML_UTC = function () {
+    return `<time datetime="${this.toISOString()}">${this.toUTCString()}</time>`;
+};
+Datetime_global.prototype.toHTMLHistoryString = function () {
+    const options = { smallestUnit: 'seconds', largestUnit: 'years' }, historyString = this.until(new Date, options).toHumanString(2);
+    return `<time datetime="${this.toISOString()}">${historyString}</time>`;
+};
 /**
  * Returns an HTML <time> element with the date-time formatted in the instance's timezone.
  * The datetime attribute is in ISO 8601 format (UTC).
@@ -281,7 +292,11 @@ Datetime_global.prototype.toHTMLString = function () {
  * console.log(dt.getDay()); // 5
  */
 Datetime_global.prototype.getDay = function () {
-    return this.time.dayOfWeek % this.time.daysInWeek;
+    const time = this.time.withCalendar('iso8601');
+    return time.dayOfWeek % time.daysInWeek;
+};
+Datetime_global.prototype.getDayOfWeek = function () {
+    return this.time.dayOfWeek;
 };
 /**
  * Returns the year minus 1900 (e.g., 2025 -> 125).
@@ -472,15 +487,6 @@ Datetime_global.prototype.getUTCMilliseconds = function () {
  */
 Datetime_global.prototype.getTimezoneOffset = function () {
     return -Math.round((Number(this.time.offsetNanoseconds) / 1e9) / 60);
-};
-/**
- * Converts this Datetime_global to a Datetime_local instance.
- * @deprecated Use alternative methods or constructor.
- * @returns A Datetime_local instance.
- * @throws TypeError if Datetime_local is not available.
- */
-Datetime_global.prototype.toDatetime_local = function () {
-    return new Datetime_local(this.time.epochMilliseconds);
 };
 /**
  * Returns the date-time as an ISO 8601 string in UTC (e.g., "2025-04-18T00:00:00.000Z").
@@ -956,7 +962,7 @@ Datetime_global.prototype.getDayNumberMonth = Datetime_global.prototype.getDayNu
  * console.log(dt.getDayName()); // "Fri"
  */
 Datetime_global.prototype.getDayName = function () {
-    return this.time.toLocaleString("en-US", { "weekday": "short" });
+    return Datetime_global.daynames[this.getDay()];
 };
 /**
  * Returns the abbreviated month name (e.g., "Jan", "Feb") in en-US locale.
@@ -966,7 +972,7 @@ Datetime_global.prototype.getDayName = function () {
  * console.log(dt.getMonthName()); // "Apr"
  */
 Datetime_global.prototype.getMonthName = function () {
-    return this.time.toLocaleString("en-US", { "month": "short" });
+    return Datetime_global.monthnames[this.withCalender('iso8601').getMonth()];
 };
 /**
  * Returns the full weekday name (e.g., "Monday", "Tuesday") in en-US locale.
@@ -976,7 +982,7 @@ Datetime_global.prototype.getMonthName = function () {
  * console.log(dt.getFullDayName()); // "Friday"
  */
 Datetime_global.prototype.getFullDayName = function () {
-    return this.time.toLocaleString("en-US", { "weekday": "long" });
+    return Datetime_global.daynamesFull[this.getDay()];
 };
 /**
  * Returns the full month name (e.g., "January", "February") in en-US locale.
@@ -986,10 +992,22 @@ Datetime_global.prototype.getFullDayName = function () {
  * console.log(dt.getFullMonthName()); // "April"
  */
 Datetime_global.prototype.getFullMonthName = function () {
-    return this.time.toLocaleString("en-US", { "month": "long" });
+    return Datetime_global.monthnamesFull[this.withCalender('iso8601').getMonth()];
 };
 Datetime_global.prototype.toLocaleString = function (locales, options) {
     return this.time.toLocaleString(locales, options);
+};
+Datetime_global.prototype.toGMTString = function () {
+    return this.toDate().toUTCString();
+};
+Datetime_global.prototype.toUTCString = function () {
+    return this.toUTCTimezone().format('D, d M Y H:i:s \\U\\T\\C');
+};
+Datetime_global.prototype.toDateString = function () {
+    return this.format('D M d Y');
+};
+Datetime_global.prototype.toTimeString = function () {
+    return this.format('H:i:s \\U\\T\\CO (e)');
 };
 /**
  * Formats the date-time using a PHP-like format pattern with placeholders (e.g., `Y`, `m`, `d`).
@@ -1001,27 +1019,11 @@ Datetime_global.prototype.toLocaleString = function (locales, options) {
  * const dt = new Datetime_global(new Date(2025, 3, 18), "UTC");
  * dt.format("Y-m-d H:i:s"); // "2025-04-18 00:00:00"
  * dt.format("[toMYSQLi]"); // "2025-04-18 00:00:00"
- * dt.format("D, Y-m-d H:i:s.u \U\T\CO (e)"); // "Fri, 2025-04-18 00:00:00.000000 UTC+0000 (UTC)"
+ * dt.format("D, Y-m-d H:i:s.u \\U\\T\\CO (e)"); // "Fri, 2025-04-18 00:00:00.000000 UTC+0000 (UTC)"
  * @see https://www.php.net/manual/en/datetime.format.php for placeholder details.
  */
 Datetime_global.prototype.format = function (pattern) {
     const string = pattern;
-    function underscoreNumber(n) {
-        return chunkArray(Array.from(BigInt(n).toString()).reverse(), 3).map(chunk => chunk.reverse().join().replace(/,/g, '')).reverse().join().replace(/,/g, '_');
-    }
-    function chunkArray(array, chunkSize) {
-        const result = [];
-        array = Array.from(array);
-        chunkSize = Number(Math.trunc(chunkSize));
-        for (let i = 0; i < array.length; i += chunkSize) {
-            result.push(array.slice(i, i + chunkSize));
-        }
-        return result;
-    }
-    function addSignToNumber(n, chunk = true) {
-        const strx = String((chunk ? underscoreNumber : BigInt)(n));
-        return strx.startsWith('-') ? strx : `+${strx}`;
-    }
     //(new this.constructor(this, this?.time?.timeZoneId))
     const pad = function (numberToPad, number = 2, plusIfPositive = false) {
         return (numberToPad < 0 ? '-' : (plusIfPositive ? '+' : '')) + String(Math.abs(numberToPad)).padStart(Number(number), '0');
@@ -1131,6 +1133,25 @@ Datetime_global.prototype.format = function (pattern) {
         return strxx;
     });
 };
+Datetime_global.prototype.formatUTC = function (pattern) {
+    return this.toUTCTimezone().format(pattern);
+};
+function underscoreNumber(n) {
+    return chunkArray(Array.from(BigInt(n).toString()).reverse(), 3).map(chunk => chunk.reverse().join().replace(/,/g, '')).reverse().join().replace(/,/g, '_');
+}
+function chunkArray(array, chunkSize) {
+    const result = [];
+    array = Array.from(array);
+    chunkSize = Number(Math.trunc(chunkSize));
+    for (let i = 0; i < array.length; i += chunkSize) {
+        result.push(array.slice(i, i + chunkSize));
+    }
+    return result;
+}
+function addSignToNumber(n, chunk = true) {
+    const strx = String((chunk ? underscoreNumber : BigInt)(n));
+    return strx.startsWith('-') ? strx : `+${strx}`;
+}
 export const noFormat = function (string) {
     return String(string).replace(/[a-zA-Z]/g, '\\$&');
 };
@@ -1282,6 +1303,10 @@ Datetime_global.FORMAT_LONG_DATE = 'l, F jS, Y';
 Datetime_global.FORMAT_SHORT_DATE_TIME = 'M d, Y H:i';
 Datetime_global.FORMAT_FULL_DATE_TIME = 'l, F jS, Y H:i:s O (e)';
 Datetime_global.FORMAT_OFFSET_FROM_NOW = '[offsetFromNow]';
+Datetime_global.daynames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+Datetime_global.monthnames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+Datetime_global.daynamesFull = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+Datetime_global.monthnamesFull = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 export const toSwatchInternetTime = function (date) {
     const datetime = new Date(date), userTimestamp = BigInt(datetime.setUTCHours(datetime.getUTCHours() + 1)), midnightTimestamp = BigInt(datetime.setUTCHours(1, 0, 0, 0));
     // const MS_PER_BEAT: bigint = 86400000n / 1000n; // 86_400 ms per beat
@@ -1411,80 +1436,75 @@ export const ordinalSuffix = function (value) {
 /**
  * undocumented, can change any version
  * @param other
+ * @param options
  */
-Datetime_global.prototype.until = function (other) {
+Datetime_global.prototype.until = function (other, options) {
     const zdt = new Datetime_global(other, this.getTimezoneId());
-    return this.time.until(zdt.toTemporalZonedDateTime());
+    return new ZDTDuration(this.time.until(zdt.toTemporalZonedDateTime(), options));
 };
 /**
  * undocumented, can change any version
  * @param other
+ * @param options
  */
-Datetime_global.prototype.since = function (other) {
+Datetime_global.prototype.since = function (other, options) {
     const zdt = new Datetime_global(other, this.getTimezoneId());
-    return this.time.since(zdt.toTemporalZonedDateTime());
+    return new ZDTDuration(this.time.since(zdt.toTemporalZonedDateTime(), options));
 };
-/**
- * undocumented, can change any version
- * @param roundToOptions
- * @returns {*|string}
- * @constructor
- */
-export const DurationToHumanString = function (roundToOptions = { smallestUnit: 'nanoseconds' }) {
-    const rounded = roundToOptions.round ? this.round(roundToOptions) : this, constructed = [];
-    if (rounded.years !== 0)
-        constructed.push(` ${rounded.years} year${Math.abs(rounded.years) === 1 ? '' : 's'}`);
-    if (rounded.months !== 0)
-        constructed.push(` ${rounded.months} month${Math.abs(rounded.months) === 1 ? '' : 's'}`);
-    if (rounded.days !== 0)
-        constructed.push(` ${rounded.days} day${Math.abs(rounded.days) === 1 ? '' : 's'}`);
-    if (rounded.hours !== 0)
-        constructed.push(` ${rounded.hours} hour${Math.abs(rounded.hours) === 1 ? '' : 's'}`);
-    if (rounded.minutes !== 0)
-        constructed.push(` ${rounded.minutes} minute${Math.abs(rounded.minutes) === 1 ? '' : 's'}`);
-    if (rounded.seconds !== 0)
-        constructed.push(` ${rounded.seconds} second${Math.abs(rounded.seconds) === 1 ? '' : 's'}`);
-    if (constructed.length === 0)
-        return "0 seconds";
-    if (constructed.length === 1)
-        return constructed[0].replace(/^\s+/, '');
-    if (typeof roundToOptions.largestUnits === 'number') {
-        if (roundToOptions.largestUnits === Infinity) {
+export const toNumeric = function (value, type = null) {
+    // Handle object conversion
+    if (typeof value === 'object' && value !== null) {
+        // Try Symbol.toPrimitive
+        if (typeof value[Symbol.toPrimitive] === 'function') {
+            value = value[Symbol.toPrimitive]('number');
+            if (typeof value !== 'object' || value === null) {
+                // Continue with primitive
+            }
+            else {
+                throw new TypeError('Cannot convert object to primitive value');
+            }
         }
-        else if (roundToOptions.largestUnits > 0) {
-            constructed.length = Math.min(constructed.length, roundToOptions.largestUnits);
+        else {
+            // Try valueOf
+            let temp = typeof value.valueOf === 'function' ? value.valueOf() : value;
+            if (typeof temp !== 'object' || temp === null) {
+                value = temp;
+            }
+            else {
+                // Try toString
+                temp = typeof value.toString === 'function' ? value.toString() : value;
+                if (typeof temp !== 'object' || temp === null) {
+                    value = temp;
+                }
+                else {
+                    throw new TypeError('Cannot convert object to primitive value');
+                }
+            }
         }
     }
-    const popped = constructed.pop();
-    return `${constructed}, and${popped}`.replace(/^\s+/, '');
-};
-/**
- * undocumented, can change any version
- * @param relativeTo
- * @param smallestUnit
- * @param largestUnit
- * @returns {*|string}
- * @constructor
- */
-DurationToHumanString.ToHumanString = function (relativeTo, smallestUnit = 'seconds', largestUnit = 'years') {
-    const Symbol_null = Symbol.for('null'), round = (relativeTo ?? Symbol_null) !== Symbol_null;
-    relativeTo = (new Datetime_global(relativeTo)).toTemporalZonedDateTime();
-    return DurationToHumanString.call(this, { relativeTo, smallestUnit, largestUnit, round });
-};
-/**
- * undocumented, can change any version
- * @param relativeTo
- * @param largestUnits
- * @param smallestUnit
- * @returns {*|string}
- * @constructor
- */
-DurationToHumanString.ToHistoryString = function (relativeTo, largestUnits, smallestUnit = 'seconds') {
-    largestUnits = largestUnits ?? Infinity;
-    const Symbol_null = Symbol.for('null'), round = (relativeTo ?? Symbol_null) !== Symbol_null;
-    relativeTo = (new Datetime_global(relativeTo)).toTemporalZonedDateTime();
-    return DurationToHumanString.call(this, {
-        relativeTo, smallestUnit, largestUnits,
-        round, largestUnit: 'years',
-    });
+    // At this point, value should be a primitive
+    if (type === 'Number') {
+        return +value; // Unary plus, let errors propagate
+    }
+    else if (type === 'BigInt') {
+        try {
+            return BigInt(value);
+        }
+        catch (e) {
+            if (e instanceof TypeError) {
+                throw e; // Rethrow TypeError
+            }
+            if (e instanceof SyntaxError) {
+                return null; // Return null for SyntaxError
+            }
+            throw e; // Rethrow other errors
+        }
+    }
+    else {
+        // Default case: return BigInt as-is, others get unary plus
+        if (typeof value === 'bigint') {
+            return value;
+        }
+        return +value; // Unary plus, let errors propagate
+    }
 };

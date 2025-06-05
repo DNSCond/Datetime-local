@@ -1,6 +1,8 @@
-"use strict"; // [^\x00-\x7F]
-import {Datetime_local} from "./Datetime_local.js";
 import {Temporal} from 'temporal-polyfill';
+import {ZDTDuration} from "./ZDTDuration.js";
+
+"use strict"; // [^\x00-\x7F]
+
 // npm: https://www.npmjs.com/package/datetime_global
 // github: https://github.com/Qin2007/Datetime-local
 
@@ -21,6 +23,9 @@ export type Datetime_global = {
     valueOf(this: Datetime_global): number,
     setTime(this: Datetime_global, timestamp: number): number,
     toHTML(this: Datetime_global): string,
+
+    toHTML_GMT(this: Datetime_global): string,
+    toHTML_UTC(this: Datetime_global): string,
     toHTMLString(this: Datetime_global): string,
     // convertion utils
     toDate(this: Datetime_global): Date,
@@ -58,15 +63,15 @@ export type Datetime_global = {
     getDayNumberWeek(this: Datetime_global): number;
     getDayNumberMonth(this: Datetime_global): number;
     getDayNumber(this: Datetime_global): number;
-    getDayName(this: Datetime_global): string;
+    getDayName(this: Datetime_global): "Sun" | "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat";
     getMonthName(this: Datetime_global): string;
     getFullMonthName(this: Datetime_global): string;
     getFullDayName(this: Datetime_global): string;
+    getDayOfWeek(this: Datetime_global): number;
 
     setNanoseconds(this: Datetime_global, nanoseconds: bigint, microseconds?: bigint): bigint;
     getNanoseconds(this: Datetime_global): bigint;
     getUTCNanoseconds(this: Datetime_global): bigint;
-    toDatetime_local(this: Datetime_global): Datetime_local;
 
     toISOString(this: Datetime_global): string;
     toTemporalZonedDateTime(): Temporal.ZonedDateTime;
@@ -81,7 +86,8 @@ export type Datetime_global = {
     toUTCTimezone(this: Datetime_global): Datetime_global;
     toLocalTime(this: Datetime_global): Datetime_global;
     toLocaleString(locales?: string | string[] | undefined, options?: Intl.DateTimeFormatOptions | undefined): string;
-    format(this: Datetime_global, string: string): string;//formatPlaceholders(this:Datetime_global):{[k:string]:string};
+    format(this: Datetime_global, string: string): string;
+    formatUTC(this: Datetime_global, pattern: string): string;
     withCalender(this: Datetime_global, calender?: Temporal.CalendarLike): Datetime_global;
 
     startOfDay(this: Datetime_global, timezone?: Temporal.TimeZoneLike): Datetime_global;
@@ -90,16 +96,23 @@ export type Datetime_global = {
     getTimezoneId(this: Datetime_global): string;
     getTimestamp(this: Datetime_global): bigint;
 
-    until(this: Datetime_global, other: constructorInput): Temporal.Duration;
-    since(this: Datetime_global, other: constructorInput): Temporal.Duration;
+    until(this: Datetime_global, other: constructorInput, options: any): ZDTDuration;
+    since(this: Datetime_global, other: constructorInput, options: any): ZDTDuration;
+    //
+    toGMTString(this: Datetime_global): string;
+    toUTCString(this: Datetime_global): string;
+
+    toDateString(this: Datetime_global): string;
+    toTimeString(this: Datetime_global): string;
+    toHTMLHistoryString(this: Datetime_global): string;
 };
 
 interface Datetime_global_constructor {
     prototype: Datetime_global;
 
-    new(from?: constructorInput | Datetime_local, timezoneId?: Temporal.TimeZoneLike | string | undefined): Datetime_global,
+    new(from?: constructorInput, timezoneId?: Temporal.TimeZoneLike | string | undefined): Datetime_global,
 
-    (from?: constructorInput | Datetime_local, timezoneId?: Temporal.TimeZoneLike | string | undefined): string,
+    (from?: constructorInput, timezoneId?: Temporal.TimeZoneLike | string | undefined): string,
 
     parse_strict(string: string): Temporal.ZonedDateTime;
 
@@ -138,6 +151,10 @@ interface Datetime_global_constructor {
     FORMAT_SHORT_DATE_TIME: string;
     FORMAT_FULL_DATE_TIME: string;
     FORMAT_OFFSET_FROM_NOW: string;
+    daynames: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    monthnames: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    daynamesFull: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    monthnamesFull: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
     fromTemporalZonedDateTime(zonedDatetime: Temporal.ZonedDateTime | unknown): Datetime_global;
 }
@@ -147,7 +164,7 @@ interface Datetime_global_constructor {
  * @param from - Input to initialize the date-time. Supports:
  *   - Temporal.ZonedDateTime: Used directly.
  *   - Temporal.Instant: Converted from epoch nanoseconds.
- *   - Date | Datetime_global | Datetime_local: Converted from epoch milliseconds.
+ *   - Date | Datetime_global: Converted from epoch milliseconds.
  *   - bigint: Nanoseconds since epoch.
  *   - number: Milliseconds since epoch.
  *   - string: Parsed using `Date.parse` (EcmaScript format or browser-dependent formats).
@@ -180,7 +197,7 @@ interface Datetime_global_constructor {
  * @function
  */
 export const Datetime_global: Datetime_global_constructor = function (
-    this: Datetime_global, from: constructorInput | Datetime_local | undefined = undefined,
+    this: Datetime_global, from: constructorInput | undefined = undefined,
     timezoneId: string = Temporal.Now.timeZoneId(),
 ): Datetime_global | string | void {
     let timestamp: number | bigint, isBigInt: boolean = false;
@@ -417,6 +434,22 @@ Datetime_global.prototype.toHTML = function (this: Datetime_global): string {
     const date: Date = new Date(this.time.epochMilliseconds);
     return `<time datetime="${date.toISOString()}">${date}</time>`.replace(/GMT/, 'UTC');
 };
+
+Datetime_global.prototype.toHTML_GMT = function (this: Datetime_global): string {
+    const date: Date = new Date(this.time.epochMilliseconds);
+    return `<time datetime="${date.toISOString()}">${date.toUTCString()}</time>`;
+};
+
+Datetime_global.prototype.toHTML_UTC = function (this: Datetime_global): string {
+    return `<time datetime="${this.toISOString()}">${this.toUTCString()}</time>`;
+};
+
+Datetime_global.prototype.toHTMLHistoryString = function (this: Datetime_global): string {
+    const options: any = {smallestUnit: 'seconds', largestUnit: 'years'},
+        historyString: string = this.until(new Date, options).toHumanString(2);
+    return `<time datetime="${this.toISOString()}">${historyString}</time>`;
+};
+
 /**
  * Returns an HTML <time> element with the date-time formatted in the instance's timezone.
  * The datetime attribute is in ISO 8601 format (UTC).
@@ -439,7 +472,11 @@ Datetime_global.prototype.toHTMLString = function (this: Datetime_global): strin
  * console.log(dt.getDay()); // 5
  */
 Datetime_global.prototype.getDay = function (this: Datetime_global): number {
-    return this.time.dayOfWeek % this.time.daysInWeek;
+    const time = this.time.withCalendar('iso8601');
+    return time.dayOfWeek % time.daysInWeek;
+};
+Datetime_global.prototype.getDayOfWeek = function (this: Datetime_global): number {
+    return this.time.dayOfWeek;
 };
 
 /**
@@ -647,16 +684,6 @@ Datetime_global.prototype.getUTCMilliseconds = function (this: Datetime_global):
  */
 Datetime_global.prototype.getTimezoneOffset = function (this: Datetime_global): number {
     return -Math.round((Number(this.time.offsetNanoseconds) / 1e9) / 60);
-};
-
-/**
- * Converts this Datetime_global to a Datetime_local instance.
- * @deprecated Use alternative methods or constructor.
- * @returns A Datetime_local instance.
- * @throws TypeError if Datetime_local is not available.
- */
-Datetime_global.prototype.toDatetime_local = function (this: Datetime_global): Datetime_local {
-    return new Datetime_local(this.time.epochMilliseconds);
 };
 
 /**
@@ -1131,7 +1158,7 @@ Datetime_global.prototype.toLocalTime = function (this: Datetime_global): Dateti
  * const dt = new Datetime_global("2025-04-18T00:00:00Z", "UTC"); // Friday
  * console.log(dt.getDayNumberWeek()); // 5
  */
-Datetime_global.prototype.getDayNumberWeek = function (): number {
+Datetime_global.prototype.getDayNumberWeek = function (this: Datetime_global): number {
     return this.getDay();
 };
 
@@ -1143,7 +1170,7 @@ Datetime_global.prototype.getDayNumberWeek = function (): number {
  * const dt = new Datetime_global("2025-04-18T00:00:00Z", "UTC");
  * console.log(dt.getDayNumberMonth()); // 18
  */
-Datetime_global.prototype.getDayNumberMonth = Datetime_global.prototype.getDayNumber = function (): number {
+Datetime_global.prototype.getDayNumberMonth = Datetime_global.prototype.getDayNumber = function (this: Datetime_global): number {
     return this.getDate();
 };
 
@@ -1154,8 +1181,8 @@ Datetime_global.prototype.getDayNumberMonth = Datetime_global.prototype.getDayNu
  * const dt = new Datetime_global("2025-04-18T00:00:00Z", "UTC"); // Friday
  * console.log(dt.getDayName()); // "Fri"
  */
-Datetime_global.prototype.getDayName = function (): string {
-    return this.time.toLocaleString("en-US", {"weekday": "short"});
+Datetime_global.prototype.getDayName = function (this: Datetime_global): "Sun" | "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat" {
+    return Datetime_global.daynames[this.getDay()];
 };
 
 /**
@@ -1165,8 +1192,8 @@ Datetime_global.prototype.getDayName = function (): string {
  * const dt = new Datetime_global("2025-04-18T00:00:00Z", "UTC");
  * console.log(dt.getMonthName()); // "Apr"
  */
-Datetime_global.prototype.getMonthName = function (): string {
-    return this.time.toLocaleString("en-US", {"month": "short"});
+Datetime_global.prototype.getMonthName = function (this: Datetime_global): "Jan" | "Feb" | "Mar" | "Apr" | "May" | "Jun" | "Jul" | "Aug" | "Sep" | "Oct" | "Nov" | "Dec" {
+    return Datetime_global.monthnames[this.withCalender('iso8601').getMonth()];
 };
 
 /**
@@ -1176,8 +1203,8 @@ Datetime_global.prototype.getMonthName = function (): string {
  * const dt = new Datetime_global("2025-04-18T00:00:00Z", "UTC"); // Friday
  * console.log(dt.getFullDayName()); // "Friday"
  */
-Datetime_global.prototype.getFullDayName = function (): string {
-    return this.time.toLocaleString("en-US", {"weekday": "long"});
+Datetime_global.prototype.getFullDayName = function (this: Datetime_global): "Sunday" | "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" {
+    return Datetime_global.daynamesFull[this.getDay()];
 };
 
 /**
@@ -1187,11 +1214,28 @@ Datetime_global.prototype.getFullDayName = function (): string {
  * const dt = new Datetime_global("2025-04-18T00:00:00Z", "UTC");
  * console.log(dt.getFullMonthName()); // "April"
  */
-Datetime_global.prototype.getFullMonthName = function (): string {
-    return this.time.toLocaleString("en-US", {"month": "long"});
+Datetime_global.prototype.getFullMonthName = function (this: Datetime_global): "January" | "February" | "March" | "April" | "May" | "June" | "July" | "August" | "September" | "October" | "November" | "December" {
+    return Datetime_global.monthnamesFull[this.withCalender('iso8601').getMonth()];
 };
-Datetime_global.prototype.toLocaleString = function (locales?: string | string[] | undefined, options?: Intl.DateTimeFormatOptions | undefined): string {
+
+Datetime_global.prototype.toLocaleString = function (this: Datetime_global, locales?: string | string[] | undefined, options?: Intl.DateTimeFormatOptions | undefined): string {
     return this.time.toLocaleString(locales, options);
+};
+
+Datetime_global.prototype.toGMTString = function (this: Datetime_global): string {
+    return this.toDate().toUTCString();
+};
+
+Datetime_global.prototype.toUTCString = function (this: Datetime_global): string {
+    return this.toUTCTimezone().format('D, d M Y H:i:s \\U\\T\\C');
+};
+
+Datetime_global.prototype.toDateString = function (this: Datetime_global): string {
+    return this.format('D M d Y');
+};
+
+Datetime_global.prototype.toTimeString = function (this: Datetime_global): string {
+    return this.format('H:i:s \\U\\T\\CO (e)');
 };
 
 /**
@@ -1204,31 +1248,11 @@ Datetime_global.prototype.toLocaleString = function (locales?: string | string[]
  * const dt = new Datetime_global(new Date(2025, 3, 18), "UTC");
  * dt.format("Y-m-d H:i:s"); // "2025-04-18 00:00:00"
  * dt.format("[toMYSQLi]"); // "2025-04-18 00:00:00"
- * dt.format("D, Y-m-d H:i:s.u \U\T\CO (e)"); // "Fri, 2025-04-18 00:00:00.000000 UTC+0000 (UTC)"
+ * dt.format("D, Y-m-d H:i:s.u \\U\\T\\CO (e)"); // "Fri, 2025-04-18 00:00:00.000000 UTC+0000 (UTC)"
  * @see https://www.php.net/manual/en/datetime.format.php for placeholder details.
  */
 Datetime_global.prototype.format = function (this: Datetime_global, pattern: string): string {
     const string: string = pattern;
-
-    function underscoreNumber(n: number | bigint): string {
-        return chunkArray(Array.from(BigInt(n).toString()).reverse(), 3).map(chunk => chunk.reverse().join().replace(/,/g, '')).reverse().join().replace(/,/g, '_');
-    }
-
-    function chunkArray(array: any[] | string, chunkSize: number): any[] {
-        const result = [];
-        array = Array.from(array);
-        chunkSize = Number(Math.trunc(chunkSize));
-        for (let i = 0; i < array.length; i += chunkSize) {
-            result.push(array.slice(i, i + chunkSize));
-        }
-        return result;
-    }
-
-    function addSignToNumber(n: number | bigint | string, chunk: boolean = true): string {
-        const strx: string = String((chunk ? underscoreNumber : BigInt)(n as bigint));
-        return strx.startsWith('-') ? strx : `+${strx}`;
-    }
-
     //(new this.constructor(this, this?.time?.timeZoneId))
     const pad = function (numberToPad: number, number: number = 2, plusIfPositive: boolean = false): string {
         return (numberToPad < 0 ? '-' : (plusIfPositive ? '+' : '')) + String(Math.abs(numberToPad)).padStart(Number(number), '0');
@@ -1252,7 +1276,7 @@ Datetime_global.prototype.format = function (this: Datetime_global, pattern: str
         seconds: string = pad(datetime_local.getSeconds()),
         datetime_timezone: string = datetime_local.time.timeZoneId,
         offset: string = Datetime_global.getUTCOffset(datetime_local.getTimezoneOffset()).replace(/UTC/, ''),
-        currentDate = datetime_local.toDate(), B: string = toSwatchInternetTime(currentDate),
+        currentDate: Date = datetime_local.toDate(), B: string = toSwatchInternetTime(currentDate),
         microseconds: string = `${pad(datetime_local.getMilliseconds(), 3)}${pad(datetime_local.time.microsecond, 3)}`,
         milliseconds: string = pad(datetime_local.getMilliseconds(), 3);
     return String(string).replace(/\[[a-zA-Z0-9\-_]+]/g, function (substring: string): string {
@@ -1357,6 +1381,29 @@ Datetime_global.prototype.format = function (this: Datetime_global, pattern: str
         return strxx;
     });
 };
+
+Datetime_global.prototype.formatUTC = function (this: Datetime_global, pattern: string): string {
+    return this.toUTCTimezone().format(pattern);
+};
+
+function underscoreNumber(n: number | bigint): string {
+    return chunkArray(Array.from(BigInt(n).toString()).reverse(), 3).map(chunk => chunk.reverse().join().replace(/,/g, '')).reverse().join().replace(/,/g, '_');
+}
+
+function chunkArray(array: any[] | string, chunkSize: number): any[] {
+    const result = [];
+    array = Array.from(array);
+    chunkSize = Number(Math.trunc(chunkSize));
+    for (let i = 0; i < array.length; i += chunkSize) {
+        result.push(array.slice(i, i + chunkSize));
+    }
+    return result;
+}
+
+function addSignToNumber(n: number | bigint | string, chunk: boolean = true): string {
+    const strx: string = String((chunk ? underscoreNumber : BigInt)(n as bigint));
+    return strx.startsWith('-') ? strx : `+${strx}`;
+}
 
 export const noFormat = function (string: any): string {
     return String(string).replace(/[a-zA-Z]/g, '\\$&');
@@ -1478,6 +1525,7 @@ Datetime_global.prototype.templateFormat = function (this: Datetime_global, stri
         return result + str + (i < expressions.length ? formatted : '');
     }, '');
 };
+
 Datetime_global.FORMAT_DATETIME_GLOBALV2 = 'D, Y-m-d H:i:s.u \\U\\T\\CO (e)';
 Datetime_global.FORMAT_DATETIME_GLOBALV1 = 'D Y-m-d H:i:s \\U\\T\\CO (e)';
 Datetime_global.FORMAT_DATEV1 = 'D M d Y H:i:s \\U\\T\\CO (e)';
@@ -1492,8 +1540,12 @@ Datetime_global.FORMAT_LONG_DATE = 'l, F jS, Y';
 Datetime_global.FORMAT_SHORT_DATE_TIME = 'M d, Y H:i';
 Datetime_global.FORMAT_FULL_DATE_TIME = 'l, F jS, Y H:i:s O (e)';
 Datetime_global.FORMAT_OFFSET_FROM_NOW = '[offsetFromNow]';
+Datetime_global.daynames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+Datetime_global.monthnames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+Datetime_global.daynamesFull = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+Datetime_global.monthnamesFull = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-
+// todo correctly handle this
 export const toSwatchInternetTime = function (date: Date | number | string): string {
     const datetime: Date = new Date(date), userTimestamp: bigint =
             BigInt(datetime.setUTCHours(datetime.getUTCHours() + 1)),
@@ -1502,6 +1554,25 @@ export const toSwatchInternetTime = function (date: Date | number | string): str
     const elapsedMs: bigint = userTimestamp - midnightTimestamp;
     return ((elapsedMs * 1000n) / 86400_000n).toString().padStart(3, '0');  // Compute beats as BigInt
 };
+
+// export const toSwatchInternetTime = function (input: Date | number | string): string {
+//     const original = new Date(input);
+//
+//     // Set to UTC+1 (BMT): original timestamp + 1h
+//     const bmtTimestamp: bigint = BigInt(original.getTime() + 60 * 60 * 1000);
+//
+//     // Construct midnight BMT for that day (UTC 01:00:00.000)
+//     const midnight = new Date(original);
+//     midnight.setUTCHours(1, 0, 0, 0);
+//     const midnightTimestamp: bigint = BigInt(midnight.getTime());
+//
+//     const elapsedMs: bigint = bmtTimestamp - midnightTimestamp;
+//
+//     // 86400 ms per beat → 86400000 / 1000
+//     const beats = (elapsedMs * 1000n) / 86400000n;
+//
+//     return beats.toString().padStart(3, '0');
+// };
 
 Datetime_global.prototype.withCalender = function (this: Datetime_global, calender: Temporal.CalendarLike = "iso8601"): Datetime_global {
     const datetime_global: Datetime_global = new Datetime_global(this.time.epochNanoseconds, this.time.timeZoneId);
@@ -1532,6 +1603,7 @@ Datetime_global.prototype.startOfDay = function (this: Datetime_global, timezone
     const zdt: bigint = (timezone ? this.toTimezone(timezone) : this).time.startOfDay().epochNanoseconds;
     return new Datetime_global(zdt, this.time.timeZoneId);
 };
+
 Datetime_global.prototype.getTimestamp = function (this: Datetime_global): bigint {
     return this.time.epochNanoseconds;
 };
@@ -1630,97 +1702,71 @@ export const ordinalSuffix = function (value: number | bigint): string {
 /**
  * undocumented, can change any version
  * @param other
+ * @param options
  */
-Datetime_global.prototype.until = function (this: Datetime_global, other: constructorInput): Temporal.Duration {
+Datetime_global.prototype.until = function (this: Datetime_global, other: constructorInput, options: any): ZDTDuration {
     const zdt: Datetime_global = new Datetime_global(other, this.getTimezoneId());
-    return this.time.until(zdt.toTemporalZonedDateTime());
+    return new ZDTDuration(this.time.until(zdt.toTemporalZonedDateTime(), options));
 };
 
 /**
  * undocumented, can change any version
  * @param other
+ * @param options
  */
-Datetime_global.prototype.since = function (this: Datetime_global, other: constructorInput): Temporal.Duration {
+Datetime_global.prototype.since = function (this: Datetime_global, other: constructorInput, options: any): ZDTDuration {
     const zdt: Datetime_global = new Datetime_global(other, this.getTimezoneId());
-    return this.time.since(zdt.toTemporalZonedDateTime());
+    return new ZDTDuration(this.time.since(zdt.toTemporalZonedDateTime(), options));
 };
 
-type durationOptions = Temporal.DurationRoundTo & { round?: boolean, largestUnits?: number };
-
-/**
- * undocumented, can change any version
- * @param roundToOptions
- * @returns {*|string}
- * @constructor
- */
-export const DurationToHumanString = function (
-    this: Temporal.Duration, roundToOptions: durationOptions = {smallestUnit: 'nanoseconds'}): string {
-    const rounded: Temporal.Duration = roundToOptions.round ? this.round(roundToOptions as Exclude<durationOptions,
-        { round?: boolean, largestUnits?: number }>) : this, constructed: string[] = [];
-    if (rounded.years !== 0) constructed.push(` ${rounded.years} year${Math.abs(rounded.years) === 1 ? '' : 's'}`);
-    if (rounded.months !== 0) constructed.push(` ${rounded.months} month${Math.abs(rounded.months) === 1 ? '' : 's'}`);
-    if (rounded.days !== 0) constructed.push(` ${rounded.days} day${Math.abs(rounded.days) === 1 ? '' : 's'}`);
-    if (rounded.hours !== 0) constructed.push(` ${rounded.hours} hour${Math.abs(rounded.hours) === 1 ? '' : 's'}`);
-    if (rounded.minutes !== 0) constructed.push(` ${rounded.minutes} minute${Math.abs(rounded.minutes) === 1 ? '' : 's'}`);
-    if (rounded.seconds !== 0) constructed.push(` ${rounded.seconds} second${Math.abs(rounded.seconds) === 1 ? '' : 's'}`);
-    if (constructed.length === 0) return "0 seconds";
-    if (constructed.length === 1) return constructed[0].replace(/^\s+/, '');
-    if (typeof roundToOptions.largestUnits === 'number') {
-        if (roundToOptions.largestUnits === Infinity) {
-        } else if (roundToOptions.largestUnits > 0) {
-            constructed.length = Math.min(constructed.length, roundToOptions.largestUnits);
+function toPrimitive(o: any, preference: "number" | "string" | "default"): string | number | boolean | bigint | symbol | null | undefined {
+    preference = ["number", "string", "default"].includes(preference) ? preference : "default";
+    if (typeof o === "object" || typeof o === "function") {
+        if (typeof o[Symbol.toPrimitive] === "function") {
+            const p = o[Symbol.toPrimitive](preference);
+            if (!(typeof p === "object" || typeof p === "function")) {
+                return p;
+            }
+        } else {
+            for (let methodName of (preference === "string" ? ["toString", "valueOf"] : ["valueOf", "toString"])) {
+                if (typeof o[methodName] === "function") {
+                    const p = o[methodName]();
+                    if (!(typeof p === "object" || typeof p === "function")) {
+                        return p;
+                    }
+                }
+            }
         }
+    } else {
+        return o;
     }
-    const popped = constructed.pop();
-    return `${constructed}, and${popped}`.replace(/^\s+/, '');
-};
-export type durationString =
-    | 'years'
-    | 'year'
-    | 'months'
-    | 'month'
-    | 'hours'
-    | 'hour'
-    | 'minutes'
-    | 'minute'
-    | 'seconds'
-    | 'second';
+    throw new TypeError('that could not be converted to Primitive');
+}
 
-/**
- * undocumented, can change any version
- * @param relativeTo
- * @param smallestUnit
- * @param largestUnit
- * @returns {*|string}
- * @constructor
- */
-DurationToHumanString.ToHumanString = function (
-    this: Temporal.Duration,
-    relativeTo?: Temporal.ZonedDateTime | Datetime_global,
-    smallestUnit: durationString = 'seconds',
-    largestUnit: durationString = 'years'): string {
-    const Symbol_null = Symbol.for('null'), round: boolean = (relativeTo ?? Symbol_null) !== Symbol_null;
-    relativeTo = (new Datetime_global(relativeTo)).toTemporalZonedDateTime();
-    return DurationToHumanString.call(this, {relativeTo, smallestUnit, largestUnit, round});
-};
+export function toNumeric(value: any, type: 'BigInt' | 'Number' | null = null): bigint | number | null {
+    // Handle object conversion
+    value = toPrimitive(value, "number");
 
-/**
- * undocumented, can change any version
- * @param relativeTo
- * @param largestUnits
- * @param smallestUnit
- * @returns {*|string}
- * @constructor
- */
-DurationToHumanString.ToHistoryString = function (
-    this: Temporal.Duration,
-    relativeTo?: Temporal.ZonedDateTime | Datetime_global,
-    largestUnits?: number, smallestUnit: durationString = 'seconds'): string {
-    largestUnits = largestUnits ?? Infinity;
-    const Symbol_null = Symbol.for('null'), round: boolean = (relativeTo ?? Symbol_null) !== Symbol_null;
-    relativeTo = (new Datetime_global(relativeTo)).toTemporalZonedDateTime();
-    return DurationToHumanString.call(this, {
-        relativeTo, smallestUnit, largestUnits,
-        round, largestUnit: 'years',
-    });
-};
+    // At this point, value should be a primitive
+    if (type === 'Number') {
+        return +value; // Unary plus, let errors propagate
+    } else if (type === 'BigInt') {
+        try {
+            return BigInt(value);
+        } catch (e) {
+            if (e instanceof TypeError) {
+                throw e; // Rethrow TypeError
+            }
+            if (e instanceof SyntaxError) {
+                return null; // Return null for SyntaxError
+            }
+            throw e; // Rethrow other errors
+        }
+    } else {
+        // Default case: return BigInt as-is, others get unary plus
+        if (typeof value === 'bigint') {
+            return value;
+        }
+        return +value; // Unary plus, let errors propagate
+    }
+}
