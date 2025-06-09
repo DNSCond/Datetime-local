@@ -186,6 +186,11 @@ Datetime_global.prototype.toTimezone = Datetime_global.prototype.withTimezone = 
     // hiostory
     return new Datetime_global(this.time.epochNanoseconds, timezoneId);
 };
+/**
+ * Retrieves the timezone identifier for this Datetime_global instance.
+ *
+ * @returns {string} The timezone identifier (e.g., "America/New_York") associated with the Temporal.ZonedDateTime instance.
+ */
 Datetime_global.prototype.getTimezoneId = function () {
     return this.time.timeZoneId;
 };
@@ -226,14 +231,6 @@ Datetime_global.prototype.setTime = function (timestamp) {
     return this.time.epochMilliseconds;
 };
 /**
- * formats a string like Tue Jun 25 2024 14:30:00 UTC+0000 (UTC) based on the date contained
- *
- * note that you can also use this with Date. you just have tto attach something with time.timezoneId
- *
- * php: `D M d Y H:i:s \U\T\CO (e)`
- * @returns {string} formats a string like Tue Jun 25 2024 14:30:00 UTC+0000 (UTC) based on the date contained
- */
-/**
  * Returns a string representation of the date-time, including timezone offset and ID.
  * Format (php): "D M d Y H:i:s \U\T\CO (e)" (e.g., "Fri Apr 18 2025 00:00:00 UTC+0000 (UTC)").
  * @returns The formatted string.
@@ -260,6 +257,18 @@ Datetime_global.prototype.toHTML = function () {
     const date = new Date(this.time.epochMilliseconds);
     return `<time datetime="${date.toISOString()}">${date}</time>`.replace(/GMT/, 'UTC');
 };
+/**
+ * Returns an HTML `<time>` element string representing the current datetime in GMT (UTC) format.
+ *
+ * The `datetime` attribute is set using the ISO 8601 string (`Date.prototype.toISOString()`),
+ * and the inner text of the element is the UTC string (`Date.prototype.toUTCString()`).
+ *
+ * This is useful for embedding machine-readable and human-readable timestamps in HTML,
+ * ensuring proper formatting and time zone clarity.
+ *
+ * @this {Datetime_global} The `Datetime_global` instance containing the time value.
+ * @returns {string} A string containing the `<time>` HTML element with GMT time.
+ */
 Datetime_global.prototype.toHTML_GMT = function () {
     const date = new Date(this.time.epochMilliseconds);
     return `<time datetime="${date.toISOString()}">${date.toUTCString()}</time>`;
@@ -286,6 +295,8 @@ Datetime_global.prototype.toHTMLString = function () {
 };
 /**
  * Returns the day of the week (0 = Sunday, 1 = Monday, ..., 6 = Saturday).
+ *
+ * will convert to the iso8601 calendar
  * @returns The day of the week (0-6).
  * @example
  * const dt = new Datetime_global("2025-04-18T00:00:00Z", "UTC"); // Friday
@@ -295,11 +306,14 @@ Datetime_global.prototype.getDay = function () {
     const time = this.time.withCalendar('iso8601');
     return time.dayOfWeek % time.daysInWeek;
 };
+/**
+ * returns the true day of week arcording to the specified calendar
+ */
 Datetime_global.prototype.getDayOfWeek = function () {
     return this.time.dayOfWeek;
 };
 /**
- * Returns the year minus 1900 (e.g., 2025 -> 125).
+ * Returns the year minus 1900 (e.g., 2025 -> 125) only iso8601 calendar.
  * @returns The year minus 1900.
  * @example
  * const dt = new Datetime_global("2025-04-18T00:00:00Z", "UTC");
@@ -392,6 +406,8 @@ Datetime_global.prototype.getUTCDay = function () {
 };
 /**
  * Returns the year minus 1900 (e.g., 2025 -> 125) in UTC.
+ *
+ * will convert to Date's calendar
  * @returns The year minus 1900. in UTC
  * @example
  * const dt = new Datetime_global("2025-04-18T00:00:00Z", "UTC");
@@ -403,6 +419,8 @@ Datetime_global.prototype.getUTCYear = function () {
 };
 /**
  * Returns the year in UTC.
+ *
+ * will convert to Date's calendar
  * @returns The year minus in UTC
  * @example
  * const dt = new Datetime_global("2025-04-18T00:00:00Z", "UTC");
@@ -414,6 +432,8 @@ Datetime_global.prototype.getUTCFullYear = function () {
 };
 /**
  * Returns the month (0 = January, 1 = February, ..., 11 = December) in utc.
+ *
+ * will convert to Date's calendar
  * @returns The month (0-11) in utc.
  * @example
  * const dt = new Datetime_global("2025-04-18T00:00:00Z", "UTC");
@@ -425,6 +445,8 @@ Datetime_global.prototype.getUTCMonth = function () {
 };
 /**
  * Returns the day of the month (1-31) in utc.
+ *
+ * will convert to Date's calendar
  * @returns The day of the month in utc.
  * @example
  * const dt = new Datetime_global("2025-04-18T00:00:00Z", "UTC");
@@ -436,6 +458,8 @@ Datetime_global.prototype.getUTCDate = function () {
 };
 /**
  * Returns the hour (0-23) in utc.
+ *
+ * will convert to Date's calendar
  * @returns The hour in utc.
  * @example
  * const dt = new Datetime_global("2025-04-18T15:00:00Z", "UTC");
@@ -447,6 +471,8 @@ Datetime_global.prototype.getUTCHours = function () {
 };
 /**
  * Returns the minute (0-59) in utc.
+ *
+ * will convert to Date's calendar
  * @returns The minute in utc.
  * @example
  * const dt = new Datetime_global("2025-04-18T15:30:00Z", "UTC");
@@ -458,6 +484,8 @@ Datetime_global.prototype.getUTCMinutes = function () {
 };
 /**
  * Returns the second (0-59) in utc.
+ *
+ * will convert to Date's calendar
  * @returns The second in utc.
  * @example
  * const dt = new Datetime_global("2025-04-18T15:30:45Z", "UTC");
@@ -469,6 +497,8 @@ Datetime_global.prototype.getUTCSeconds = function () {
 };
 /**
  * Returns the millisecond (0-999) in utc.
+ *
+ * will convert to Date's calendar
  * @returns The millisecond in utc.
  * @example
  * const dt = new Datetime_global("2025-04-18T00:00:00.123Z", "UTC");
@@ -486,10 +516,10 @@ Datetime_global.prototype.getUTCMilliseconds = function () {
  * console.log(dt.getTimezoneOffset()); // 240 (4 hours west)
  */
 Datetime_global.prototype.getTimezoneOffset = function () {
-    return -Math.round((Number(this.time.offsetNanoseconds) / 1e9) / 60);
+    return -Math.trunc((Number(this.time.offsetNanoseconds) / 1e9) / 60);
 };
 /**
- * Returns the date-time as an ISO 8601 string in UTC (e.g., "2025-04-18T00:00:00.000Z").
+ * Returns the date-time as an ISO 8601 string in UTC (e.g., "2025-04-18T12:34:56.789Z").
  * Matches Date.prototype.toISOString, with millisecond precision.
  * @returns A string in ISO 8601 format.
  */
@@ -526,37 +556,8 @@ Datetime_global.prototype.setFullYear = function (fullYear, month, date) {
         year: Number(BigInt(year)),
         day: Number(BigInt(date ?? 0)),
         month: Number(BigInt(month ?? 0)),
-    }, self_time = this.time;
-    let time, indexed = 0;
-    while (true) {
-        if (++indexed > 80000) {
-            throw new Error('Precaution recursion limit reached');
-        }
-        try {
-            time = self_time.with(try_date, { overflow: "reject" });
-            break;
-        }
-        catch {
-            if (try_date.day > self_time.daysInMonth) {
-                try_date.month += Math.trunc(try_date.day / self_time.daysInMonth);
-                try_date.day = ((try_date.day - 1) % self_time.daysInMonth) + 1;
-            }
-            if (try_date.month > self_time.monthsInYear) {
-                try_date.year += Math.trunc(try_date.month / self_time.monthsInYear);
-                try_date.month = ((try_date.month - 1) % self_time.monthsInYear) + 1;
-            }
-            //
-            if (try_date.day < 1) {
-                try_date.month -= 1;
-                try_date.day += self_time.subtract({ months: 1 }).daysInMonth;
-            }
-            if (try_date.month < 1) {
-                try_date.year -= 1;
-                try_date.month += self_time.monthsInYear;
-            }
-        }
-    }
-    return (this.time = time).epochMilliseconds;
+    }, self_time = overflowDatetime_global(this, try_date);
+    return (this.time = self_time).epochMilliseconds;
 };
 /**
  * Sets the month, optionally day, modifying the instance in place.
@@ -604,79 +605,13 @@ Datetime_global.prototype.setHours = function (hours, minutes, seconds, millisec
     minutes = arguments.length > 1 ? minutes : this.time.minute;
     seconds = arguments.length > 2 ? seconds : this.time.second;
     milliseconds = arguments.length > 3 ? milliseconds : this.time.millisecond;
-    let time, indexed = 0;
     const self_time = this.time, try_time = {
         hour: Number(BigInt(hours ?? 0)),
         minute: Number(BigInt(minutes ?? 0)),
         second: Number(BigInt(seconds ?? 0)),
         millisecond: Number(BigInt(milliseconds ?? 0)),
-        microsecond: self_time.microsecond,
-        nanosecond: self_time.nanosecond,
-        day: self_time.day,
-        month: self_time.month,
-        year: self_time.year,
-    };
-    while (true) {
-        if (++indexed > 80000) {
-            throw new Error('Precaution forever loop reached');
-        }
-        try {
-            time = self_time.with(try_time, { overflow: "reject" });
-            break;
-        }
-        catch {
-            // Overflow/Underflow correction
-            if (try_time.millisecond >= 1000) {
-                try_time.second += Math.trunc(try_time.millisecond / 1000);
-                try_time.millisecond %= 1000;
-            }
-            if (try_time.second >= 60) {
-                try_time.minute += Math.trunc(try_time.second / 60);
-                try_time.second %= 60;
-            }
-            if (try_time.minute >= 60) {
-                try_time.hour += Math.trunc(try_time.minute / 60);
-                try_time.minute %= 60;
-            }
-            if (try_time.hour >= self_time.hoursInDay) {
-                try_time.day += Math.trunc(try_time.hour / self_time.hoursInDay);
-                try_time.hour %= self_time.hoursInDay;
-            }
-            if (try_time.day > self_time.daysInMonth) {
-                try_time.month += Math.trunc(try_time.day / self_time.daysInMonth);
-                try_time.day = ((try_time.day - 1) % self_time.daysInMonth) + 1;
-            }
-            if (try_time.month > self_time.monthsInYear) {
-                try_time.year += Math.trunc(try_time.month / self_time.monthsInYear);
-                try_time.month = ((try_time.month - 1) % self_time.monthsInYear) + 1;
-            }
-            //
-            if (try_time.millisecond < 0) {
-                try_time.second -= 1 + Math.trunc(Math.abs(try_time.millisecond) / 1000);
-                try_time.millisecond = 1000 + (try_time.millisecond % 1000);
-            }
-            if (try_time.second < 0) {
-                try_time.minute -= 1 + Math.trunc(Math.abs(try_time.second) / 60);
-                try_time.second = 60 + (try_time.second % 60);
-            }
-            if (try_time.minute < 0) {
-                try_time.hour -= 1 + Math.trunc(Math.abs(try_time.minute) / 60);
-                try_time.minute = 60 + (try_time.minute % 60);
-            }
-            if (try_time.hour < 0) {
-                try_time.day -= 1 + Math.trunc(Math.abs(try_time.hour) / self_time.hoursInDay);
-                try_time.hour = self_time.hoursInDay + (try_time.hour % self_time.hoursInDay);
-            }
-            if (try_time.day < 1) {
-                try_time.month -= 1;
-                try_time.day += self_time.subtract({ months: 1 }).daysInMonth;
-            }
-            if (try_time.month < 1) {
-                try_time.year -= 1;
-                try_time.month += self_time.monthsInYear;
-            }
-        }
-    }
+        day: self_time.day, month: self_time.month, year: self_time.year,
+    }, time = overflowDatetime_global(this, try_time);
     return (this.time = time).epochMilliseconds;
 };
 /**
@@ -730,6 +665,8 @@ Datetime_global.prototype.setMilliseconds = function (milliseconds) {
 // UTC
 /**
  * Sets the year, optionally month and day, in UTC, modifying the instance in place.
+ *
+ * will convert to Date's calendar
  * @param fullYear - The year (e.g., 2025).
  * @param month - The month (0-11; optional, defaults to current UTC month).
  * @param date - The day of the month (1-31; optional, defaults to current UTC day).
@@ -751,6 +688,8 @@ Datetime_global.prototype.setUTCFullYear = function (fullYear, month, date) {
 /**
  * Sets the hours, optionally minutes, seconds, and milliseconds, in UTC, modifying the instance in place.
  * Handles overflow/underflow by rolling over to adjacent days.
+ *
+ * will convert to Date's calendar
  * @param hours - The hours (e.g., 0-23; 25 rolls over to next day's 1:00).
  * @param minutes - The minutes (0-59; optional, defaults to current UTC minutes).
  * @param seconds - The seconds (0-59; optional, defaults to current UTC seconds).
@@ -799,10 +738,6 @@ Datetime_global.fromTemporalZonedDateTime = function (zonedDatetime) {
     }
     return self;
 };
-// Datetime_global.daynames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-// Datetime_global.monthnames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-// Datetime_global.daynamesFull = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-// Datetime_global.monthnamesFull = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 // custom
 /**
  * Sets the nanoseconds and optionally microseconds, modifying the instance in place.
@@ -845,7 +780,7 @@ Datetime_global.getUTCOffset = function (offset) {
     if (isNaN(offset))
         return 'UTC+Error';
     const sign = offset > 0 ? "-" : "+", absOffset = Math.abs(offset);
-    const hours = String(Math.floor(absOffset / 60)).padStart(2, "0");
+    const hours = String(Math.trunc(absOffset / 60)).padStart(2, "0");
     const minutes = String(absOffset % 60).padStart(2, "0");
     return `UTC${sign}${hours}${minutes}`;
 };
@@ -925,7 +860,7 @@ Datetime_global.prototype.toUTCTimezone = function () {
     return this.toTimezone('UTC');
 };
 /**
- * applies the user's LocalTime to the `Datetime_global`
+ * applies the system's LocalTime to the `Datetime_global`
  *
  * @returns {Datetime_global}
  */
@@ -945,7 +880,7 @@ Datetime_global.prototype.getDayNumberWeek = function () {
 };
 /**
  * Returns the day of the month (1-31).
- * @alias getDate.
+ * @alias getDate
  * @returns The day of the month.
  * @example
  * const dt = new Datetime_global("2025-04-18T00:00:00Z", "UTC");
@@ -956,7 +891,7 @@ Datetime_global.prototype.getDayNumberMonth = Datetime_global.prototype.getDayNu
 };
 /**
  * Returns the abbreviated weekday name (e.g., "Mon", "Tue") in en-US locale.
- * @returns The weekday name.
+ * @returns The weekday name. (oneOf "Sun" | "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat" )
  * @example
  * const dt = new Datetime_global("2025-04-18T00:00:00Z", "UTC"); // Friday
  * console.log(dt.getDayName()); // "Fri"
@@ -966,7 +901,7 @@ Datetime_global.prototype.getDayName = function () {
 };
 /**
  * Returns the abbreviated month name (e.g., "Jan", "Feb") in en-US locale.
- * @returns The month name.
+ * @returns The month name. (oneOf "Jan" | "Feb" | "Mar" | "Apr" | "May" | "Jun" | "Jul" | "Aug" | "Sep" | "Oct" | "Nov" | "Dec" )
  * @example
  * const dt = new Datetime_global("2025-04-18T00:00:00Z", "UTC");
  * console.log(dt.getMonthName()); // "Apr"
@@ -976,7 +911,7 @@ Datetime_global.prototype.getMonthName = function () {
 };
 /**
  * Returns the full weekday name (e.g., "Monday", "Tuesday") in en-US locale.
- * @returns The weekday name.
+ * @returns The weekday name. (OneOf "Sunday" | "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday")
  * @example
  * const dt = new Datetime_global("2025-04-18T00:00:00Z", "UTC"); // Friday
  * console.log(dt.getFullDayName()); // "Friday"
@@ -986,7 +921,7 @@ Datetime_global.prototype.getFullDayName = function () {
 };
 /**
  * Returns the full month name (e.g., "January", "February") in en-US locale.
- * @returns The month name.
+ * @returns The full month name. (oneOf "January" | "February" | "March" | "April" | "May" | "June" | "July" | "August" | "September" | "October" | "November" | "December")
  * @example
  * const dt = new Datetime_global("2025-04-18T00:00:00Z", "UTC");
  * console.log(dt.getFullMonthName()); // "April"
@@ -994,12 +929,62 @@ Datetime_global.prototype.getFullDayName = function () {
 Datetime_global.prototype.getFullMonthName = function () {
     return Datetime_global.monthnamesFull[this.withCalender('iso8601').getMonth()];
 };
+/**
+ * @see Temporal.ZonedDateTime.toLocaleString
+ * @param locales
+ * @param options
+ */
 Datetime_global.prototype.toLocaleString = function (locales, options) {
     return this.time.toLocaleString(locales, options);
 };
+/**
+ * Converts the internal datetime value to a GMT (UTC) string representation.
+ *
+ * This method provides a standardized, human-readable string of the datetime
+ * in Greenwich Mean Time (UTC), following the format produced by
+ * `Date.prototype.toUTCString()`. It is primarily intended for display purposes
+ * where a clear, unambiguous representation of the time in UTC is required.
+ *
+ * Internally, this method delegates to `toDate()`, which is expected to return a
+ * native JavaScript `Date` instance representing the same point in time as this
+ * `Datetime_global` object.
+ *
+ * #### Example
+ * ```js
+ * const dt = new Datetime_global(...);
+ * console.log(dt.toGMTString());
+ * // Output: "Mon, 09 Jun 2025 12:00:00 GMT"
+ * ```
+ *
+ * @method toGMTString
+ * @memberof Datetime_global
+ * @instance
+ * @returns {string} A GMT-formatted date string compliant with `Date.prototype.toUTCString()`.
+ */
 Datetime_global.prototype.toGMTString = function () {
     return this.toDate().toUTCString();
 };
+/**
+ * Converts the internal datetime value to a UTC string representation.
+ *
+ * This method provides a standardized, human-readable string of the datetime
+ * in UTC, following the format produced by
+ * It is primarily intended for display purposes
+ * where a clear, unambiguous representation of the time in UTC is required.
+ *
+ * #### Example
+ * ```js
+ * const dt = new Datetime_global(...);
+ * console.log(dt.toUTCString());
+ * // Output: "Mon, 09 Jun 2025 12:00:00 UTC"
+ * ```
+ *
+ * @method toGMTString
+ * @memberof Datetime_global
+ * @instance
+ * @returns {string} A UTC-formatted date string.
+ * @note php 'D, d M Y H:i:s \\U\\T\\C'
+ */
 Datetime_global.prototype.toUTCString = function () {
     return this.toUTCTimezone().format('D, d M Y H:i:s \\U\\T\\C');
 };
@@ -1133,9 +1118,6 @@ Datetime_global.prototype.format = function (pattern) {
         return strxx;
     });
 };
-Datetime_global.prototype.formatUTC = function (pattern) {
-    return this.toUTCTimezone().format(pattern);
-};
 function underscoreNumber(n) {
     return chunkArray(Array.from(BigInt(n).toString()).reverse(), 3).map(chunk => chunk.reverse().join().replace(/,/g, '')).reverse().join().replace(/,/g, '_');
 }
@@ -1216,7 +1198,10 @@ Datetime_global.prototype.templateFormat = function (strings, ...expressions) {
                 case "symbol":
                     throw new TypeError('Symbols are not supported; convert to string');
                 case "function":
-                    exp = String(exp(self.clone()));
+                    {
+                        const cloned = self.clone();
+                        exp = String(exp.call(cloned, cloned));
+                    }
                     break;
                 case "object":
                     if (exp instanceof Datetime_global) {
@@ -1236,7 +1221,7 @@ Datetime_global.prototype.templateFormat = function (strings, ...expressions) {
                             hour: 'numeric',
                             minute: '2-digit',
                             second: '2-digit',
-                            /*hour12: true*/
+                            hour12: false,
                         });
                     }
                     else if (exp instanceof Temporal.PlainYearMonth) {
@@ -1249,7 +1234,7 @@ Datetime_global.prototype.templateFormat = function (strings, ...expressions) {
                         // logic for objects, add `formatIt = true;` to pass it through format
                         // throw new Error('invalid Object passed to Datetime_global.prototype.templateFormat');
                         if ('raw' in exp) {
-                            exp = String(exp);
+                            exp = String(exp.raw);
                         }
                         else {
                             let time, resultExp;
@@ -1289,6 +1274,7 @@ Datetime_global.prototype.templateFormat = function (strings, ...expressions) {
         return result + str + (i < expressions.length ? formatted : '');
     }, '');
 };
+Datetime_global.FORMAT_DATETIME_GLOBALV3 = 'D, Y-M-d H:i:s \\U\\T\\CO (e)';
 Datetime_global.FORMAT_DATETIME_GLOBALV2 = 'D, Y-m-d H:i:s.u \\U\\T\\CO (e)';
 Datetime_global.FORMAT_DATETIME_GLOBALV1 = 'D Y-m-d H:i:s \\U\\T\\CO (e)';
 Datetime_global.FORMAT_DATEV1 = 'D M d Y H:i:s \\U\\T\\CO (e)';
@@ -1307,12 +1293,35 @@ Datetime_global.daynames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 Datetime_global.monthnames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 Datetime_global.daynamesFull = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 Datetime_global.monthnamesFull = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+// todo correctly handle this
 export const toSwatchInternetTime = function (date) {
     const datetime = new Date(date), userTimestamp = BigInt(datetime.setUTCHours(datetime.getUTCHours() + 1)), midnightTimestamp = BigInt(datetime.setUTCHours(1, 0, 0, 0));
     // const MS_PER_BEAT: bigint = 86400000n / 1000n; // 86_400 ms per beat
     const elapsedMs = userTimestamp - midnightTimestamp;
     return ((elapsedMs * 1000n) / 86400000n).toString().padStart(3, '0'); // Compute beats as BigInt
 };
+// export const toSwatchInternetTime = function (input: Date | number | string): string {
+//     const original = new Date(input);
+//
+//     // Set to UTC+1 (BMT): original timestamp + 1h
+//     const bmtTimestamp: bigint = BigInt(original.getTime() + 60 * 60 * 1000);
+//
+//     // Construct midnight BMT for that day (UTC 01:00:00.000)
+//     const midnight = new Date(original);
+//     midnight.setUTCHours(1, 0, 0, 0);
+//     const midnightTimestamp: bigint = BigInt(midnight.getTime());
+//
+//     const elapsedMs: bigint = bmtTimestamp - midnightTimestamp;
+//
+//     // 86400 ms per beat -> 86400000 / 1000
+//     const beats = (elapsedMs * 1000n) / 86400000n;
+//
+//     return beats.toString().padStart(3, '0');
+// };
+/**
+ * changes the calendar
+ * @param calender defaults to "iso8601"
+ */
 Datetime_global.prototype.withCalender = function (calender = "iso8601") {
     const datetime_global = new Datetime_global(this.time.epochNanoseconds, this.time.timeZoneId);
     datetime_global.time = datetime_global.time.withCalendar(calender);
@@ -1340,6 +1349,11 @@ Datetime_global.prototype.startOfDay = function (timezone) {
     const zdt = (timezone ? this.toTimezone(timezone) : this).time.startOfDay().epochNanoseconds;
     return new Datetime_global(zdt, this.time.timeZoneId);
 };
+/**
+ * Retrieves the timestamp for this Datetime_global instance.
+ *
+ * @returns {number} The timestamp associated with the Temporal.ZonedDateTime instance.
+ */
 Datetime_global.prototype.getTimestamp = function () {
     return this.time.epochNanoseconds;
 };
@@ -1367,72 +1381,6 @@ export const ordinalSuffix = function (value) {
     }
     return $suffix;
 };
-// export class DatetimeElement {
-//     private time: HTMLTimeElement;
-//
-//     /**
-//      * Creates a DatetimeElement instance.
-//      * @param time - The HTML <time> element to manage.
-//      * @throws TypeError if the element is not a valid <time> element or its dateTime attribute cannot be parsed with Date.parse.
-//      */
-//     constructor(time: HTMLTimeElement) {
-//         if (!(time instanceof HTMLTimeElement)) {
-//             throw new TypeError('Input must be an HTMLTimeElement');
-//         }
-//         const parsed: number = Date.parse(time.dateTime);
-//         if (parsed !== parsed) {
-//             throw new TypeError('The <time> element must have a valid dateTime attribute, which points to a valid instant in time');
-//         }
-//         this.time = time;
-//     }
-//
-//     /**
-//      * Updates the <time> element's content and attributes with the current date-time.
-//      * @param titleFormat - Optional format for the title attribute (defaults to '(D M d Y H:i:s \\U\\T\\CO (e))').
-//      * @returns The formatted string used for innerText.
-//      * @throws Error if the dateTime, timezone, or format is invalid.
-//      */
-//     update(titleFormat: string = '(D M d Y H:i:s \\U\\T\\CO (e))'): string {
-//         // const date: Datetime_global = new Datetime_global(this.time.dateTime,
-//         //         this.time.dataset.ianaTimezone ?? Temporal.Now.timeZoneId()),
-//         //     format: string = this.time.dataset.timeFormat ?? '[offsetFromNow]';
-//         // this.time.setAttribute('title', date.format(titleFormat));
-//         // this.time.innerText = date.format(format);
-//         // return this.time.outerHTML;
-//         try {
-//             const timezone: string = this.time.dataset.ianaTimezone ?? Temporal.Now.timeZoneId();
-//             const date: Datetime_global = new Datetime_global(this.time.dateTime, timezone);
-//             const format: string = this.time.dataset.timeFormat ?? '[offsetFromNow]';
-//
-//             // Update dateTime attribute for accessibility
-//             this.time.setAttribute('datetime', date.toDate().toISOString());
-//             // Update title with detailed format
-//             this.time.setAttribute('title', date.format(titleFormat));
-//             // Update innerText with user-specified or default format
-//             this.time.innerText = date.format(format);
-//
-//             return this.time.outerHTML;
-//         } catch (error) {
-//             console.error(`Failed to update DatetimeElement: ${(error as Error).message}`);
-//             this.time.innerText = 'Invalid date';
-//             return 'Invalid date';
-//         }
-//     }
-//
-//     autorun(interval: number): number {
-//         const self = this;
-//         return setInterval(function () {
-//             self.update();
-//         }, interval);
-//     }
-//
-//     /**
-//      * Gets the underlying <time> element.
-//      */
-//     get element(): HTMLTimeElement {
-//         return this.time;
-//     }
-// }
 /**
  * undocumented, can change any version
  * @param other
@@ -1451,37 +1399,34 @@ Datetime_global.prototype.since = function (other, options) {
     const zdt = new Datetime_global(other, this.getTimezoneId());
     return new ZDTDuration(this.time.since(zdt.toTemporalZonedDateTime(), options));
 };
-export const toNumeric = function (value, type = null) {
-    // Handle object conversion
-    if (typeof value === 'object' && value !== null) {
-        // Try Symbol.toPrimitive
-        if (typeof value[Symbol.toPrimitive] === 'function') {
-            value = value[Symbol.toPrimitive]('number');
-            if (typeof value !== 'object' || value === null) {
-                // Continue with primitive
-            }
-            else {
-                throw new TypeError('Cannot convert object to primitive value');
+function toPrimitive(o, preference) {
+    preference = ["number", "string", "default"].includes(preference) ? preference : "default";
+    if (typeof o === "object" || typeof o === "function") {
+        if (typeof o[Symbol.toPrimitive] === "function") {
+            const p = o[Symbol.toPrimitive](preference);
+            if (!(typeof p === "object" || typeof p === "function")) {
+                return p;
             }
         }
         else {
-            // Try valueOf
-            let temp = typeof value.valueOf === 'function' ? value.valueOf() : value;
-            if (typeof temp !== 'object' || temp === null) {
-                value = temp;
-            }
-            else {
-                // Try toString
-                temp = typeof value.toString === 'function' ? value.toString() : value;
-                if (typeof temp !== 'object' || temp === null) {
-                    value = temp;
-                }
-                else {
-                    throw new TypeError('Cannot convert object to primitive value');
+            for (let methodName of (preference === "string" ? ["toString", "valueOf"] : ["valueOf", "toString"])) {
+                if (typeof o[methodName] === "function") {
+                    const p = o[methodName]();
+                    if (!(typeof p === "object" || typeof p === "function")) {
+                        return p;
+                    }
                 }
             }
         }
     }
+    else {
+        return o;
+    }
+    throw new TypeError('that could not be converted to Primitive');
+}
+export function toNumeric(value, type = null) {
+    // Handle object conversion
+    value = toPrimitive(value, "number");
     // At this point, value should be a primitive
     if (type === 'Number') {
         return +value; // Unary plus, let errors propagate
@@ -1507,4 +1452,69 @@ export const toNumeric = function (value, type = null) {
         }
         return +value; // Unary plus, let errors propagate
     }
-};
+}
+/**
+ * Adjusts a `Temporal.ZonedDateTime` or `Datetime_global` object by applying overflow or underflow changes
+ * to its date and time components based on the provided `overflow_overwrite` values.
+ *
+ * @param zonedDateTime - The input date-time object, either as a `Datetime_global` with a `time` property
+ *                        of type `Temporal.ZonedDateTime` or directly as a `Temporal.ZonedDateTime`.
+ * @param overflow_overwrite - An object specifying the date and time fields to overwrite. Any unspecified
+ *                             fields will retain their original values from `zonedDateTime`.
+ * @param overflow_overwrite.year - The year to set, or `undefined` to keep the original.
+ * @param overflow_overwrite.month - The month to set (1-12), or `undefined` to keep the original.
+ * @param overflow_overwrite.day - The day to set (1-31), or `undefined` to keep the original.
+ * @param overflow_overwrite.hour - The hour to set (0-23), or `undefined` to keep the original.
+ * @param overflow_overwrite.minute - The minute to set (0-59), or `undefined` to keep the original.
+ * @param overflow_overwrite.second - The second to set (0-59), or `undefined` to keep the original.
+ * @param overflow_overwrite.millisecond - The millisecond to set (0-999), or `undefined` to keep the original.
+ * @param overflow_overwrite.microsecond - The microsecond to set (0-999), or `undefined` to keep the original.
+ * @param overflow_overwrite.nanosecond - The nanosecond to set (0-999), or `undefined` to keep the original.
+ *
+ * @returns A new `Temporal.ZonedDateTime` object with the adjusted date and time, accounting for overflow
+ *          or underflow as calculated from the differences between the provided and original values.
+ *
+ * @example
+ * ```typescript
+ * const zonedDateTime = new Temporal.ZonedDateTime(
+ *   2023n, 10n, 15n, 12n, 0n, 0n, 0n, 0n, 0n, 'America/New_York'
+ * );
+ * const overflow = { year: 2024, month: 12 };
+ * const result = overflowDatetime_global({ time: zonedDateTime }, overflow);
+ * // Returns a new ZonedDateTime with year 2024 and month 12, other fields unchanged.
+ * ```
+ */
+export function overflowDatetime_global(zonedDateTime, overflow_overwrite) {
+    // Extract the ZonedDateTime object
+    const self_time = zonedDateTime.time;
+    // Prepare the fields with defaults from self_time
+    const try_time = {
+        year: overflow_overwrite.year ?? self_time.year,
+        month: overflow_overwrite.month ?? self_time.month,
+        day: overflow_overwrite.day ?? self_time.day,
+        hour: overflow_overwrite.hour ?? self_time.hour,
+        minute: overflow_overwrite.minute ?? self_time.minute,
+        second: overflow_overwrite.second ?? self_time.second,
+        millisecond: overflow_overwrite.millisecond ?? self_time.millisecond,
+        microsecond: overflow_overwrite.millisecond ?? self_time.microsecond,
+        nanosecond: overflow_overwrite.millisecond ?? self_time.nanosecond,
+    };
+    // Calculate the differences (overflow/underflow) from the base time
+    const duration = {
+        years: try_time.year - self_time.year,
+        months: try_time.month - self_time.month,
+        days: try_time.day - self_time.day,
+        hours: try_time.hour - self_time.hour,
+        minutes: try_time.minute - self_time.minute,
+        seconds: try_time.second - self_time.second,
+        milliseconds: try_time.millisecond - self_time.millisecond,
+        microseconds: try_time.microsecond - self_time.microsecond,
+        nanoseconds: try_time.nanosecond - self_time.nanosecond,
+    };
+    // Create a Temporal.Duration to handle the overflow
+    const temporalDuration = new Temporal.Duration(duration.years, duration.months, 0, // weeks, not used
+    duration.days, duration.hours, duration.minutes, duration.seconds, duration.milliseconds, duration.microseconds, duration.nanoseconds);
+    // this works, shut up (grok says so)
+    // Add the duration to the original ZonedDateTime to handle overflows
+    return self_time.add(temporalDuration);
+}
