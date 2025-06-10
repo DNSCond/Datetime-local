@@ -1496,8 +1496,8 @@ export function overflowDatetime_global(zonedDateTime, overflow_overwrite) {
         minute: overflow_overwrite.minute ?? self_time.minute,
         second: overflow_overwrite.second ?? self_time.second,
         millisecond: overflow_overwrite.millisecond ?? self_time.millisecond,
-        microsecond: overflow_overwrite.millisecond ?? self_time.microsecond,
-        nanosecond: overflow_overwrite.millisecond ?? self_time.nanosecond,
+        microsecond: overflow_overwrite.microsecond ?? self_time.microsecond,
+        nanosecond: overflow_overwrite.nanosecond ?? self_time.nanosecond,
     };
     // Calculate the differences (overflow/underflow) from the base time
     const duration = {
