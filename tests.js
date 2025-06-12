@@ -70,8 +70,7 @@ you can even "${(m) => m.toUTCString()}". the this bound is  bound to the first 
 console.log((new Datetime_global(Datetime_global.now(), 'UTC')).templateFormat`
 there are even constants for this
 
-Datetime_global.FORMAT_DATETIME_GLOBALV2: ${Datetime_global.FORMAT_DATETIME_GLOBALV3};
-
+Datetime_global.FORMAT_DATETIME_GLOBALV3: ${Datetime_global.FORMAT_DATETIME_GLOBALV3};
 Datetime_global.FORMAT_DATETIME_GLOBALV2: ${Datetime_global.FORMAT_DATETIME_GLOBALV2};
 Datetime_global.FORMAT_DATETIME_GLOBALV1: ${Datetime_global.FORMAT_DATETIME_GLOBALV1};
 Datetime_global.FORMAT_DATEV1: ${Datetime_global.FORMAT_DATEV1};
@@ -98,3 +97,5 @@ console.log(JSON.stringify({
     Date: new Date, Datetime_global: new Datetime_global,
     Temporal_ZonedDateTime: new Temporal.ZonedDateTime(Datetime_global.now(), "UTC"),
 }, null, 2));
+console.log();
+console.log(time.toHTMLHistoryString())
