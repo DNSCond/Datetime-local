@@ -273,6 +273,21 @@ Datetime_global.prototype.toHTML = function () {
     const date = new Date(this.time.epochMilliseconds);
     return `<time datetime="${date.toISOString()}">${date}</time>`;
 };
+export function htmlencode(string) {
+    return String(string).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+Datetime_global.prototype.toHTMLFormatted = function (dtg, format) {
+    return `<time datetime="${dtg.toISOString()}">${htmlencode(dtg.format(format))}</time>`;
+};
+/*
+function htmlencode(string) {
+    return String(string).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+
+const toHTMLFormatted = function(dtg, format) {
+    return `<time datetime="${dtg.toISOString()}">${htmlencode(dtg.format(format))}</time>`;
+};
+*/
 /**
  * Returns an HTML `<time>` element string representing the current datetime in GMT (UTC) format.
  *
@@ -1134,7 +1149,7 @@ Datetime_global.prototype.format = function (pattern) {
                 case 'y':
                     return strx + getYear;
                 case 'x':
-                    if (+X > 10000) {
+                    if (+X > 10_000) {
                         return strx + '+' + X;
                     }
                     return strx + addSignToNumber(X, false).replace(/^\+/, '');

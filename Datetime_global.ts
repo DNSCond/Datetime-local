@@ -721,6 +721,8 @@ export type Datetime_global = {
      * @param milliseconds the milliseconds (0 to 999)
      */
     setUTCSeconds(this: Datetime_global, seconds: number, milliseconds?: number): number;
+
+    toHTMLFormatted(dtg: Datetime_global, format: string): string;
 };
 
 export interface Datetime_global_constructor {
@@ -1229,6 +1231,23 @@ Datetime_global.prototype.toHTML = function (this: Datetime_global): string {
     const date: Date = new Date(this.time.epochMilliseconds);
     return `<time datetime="${date.toISOString()}">${date}</time>`;
 };
+
+export function htmlencode(string: string): string {
+    return String(string).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+
+Datetime_global.prototype.toHTMLFormatted = function (dtg: Datetime_global, format: string): string {
+    return `<time datetime="${dtg.toISOString()}">${htmlencode(dtg.format(format))}</time>`;
+};
+/*
+function htmlencode(string) {
+    return String(string).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+
+const toHTMLFormatted = function(dtg, format) {
+    return `<time datetime="${dtg.toISOString()}">${htmlencode(dtg.format(format))}</time>`;
+};
+*/
 
 /**
  * Returns an HTML `<time>` element string representing the current datetime in GMT (UTC) format.
