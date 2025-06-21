@@ -999,7 +999,7 @@ export const Datetime_global: Datetime_global_constructor = function (
         // @ts-ignore
         timestamp = Math.trunc(from);
     }
-    if (typeof timestamp === 'number' || new.target === undefined) {
+    if (typeof timestamp === 'number' && new.target === undefined) {
         if (!Number.isSafeInteger(timestamp)) {
             return "Invalid Date";
         }

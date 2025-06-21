@@ -61,15 +61,13 @@ export const Datetime_global = function (from = undefined, timezoneId = Temporal
         // @ts-ignore
         timestamp = Math.trunc(from);
     }
-    if (typeof timestamp === 'number' || new.target === undefined) {
+    if (typeof timestamp === 'number' && new.target === undefined) {
         if (!Number.isSafeInteger(timestamp)) {
             return "Invalid Date";
         }
     }
     const time = from instanceof Temporal.ZonedDateTime ? from : new Temporal.ZonedDateTime(BigInt(timestamp) * (isBigInt ? 1n : 1000000n), timezoneId);
-    if (new.target)
-        this.time = time;
-    else {
+    if (new.target) this.time = time; else {
         return Object.assign({time}, Datetime_global.prototype).toString();
     }
 };

@@ -46,7 +46,7 @@ Datetime_HTML.prototype.toHTMLTime = function () {
     time.dateTime = this.toISOString();
     return time;
 };
-function createTimeElement() {
+export function createTimeElement() {
     const time = document.createElement('time');
     time.className = 'Datetime_HTML';
     return time;
