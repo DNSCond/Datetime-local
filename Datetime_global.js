@@ -1,5 +1,6 @@
-import { Temporal } from 'temporal-polyfill';
-import { ZDTDuration } from "./ZDTDuration.js";
+import {Temporal} from 'temporal-polyfill';
+import {ZDTDuration} from "./ZDTDuration.js";
+
 "use strict"; // [^\x00-\x7F]
 /**
  * Constructs a Datetime_global instance or returns a string representation.
@@ -45,33 +46,31 @@ export const Datetime_global = function (from = undefined, timezoneId = Temporal
     }
     if (from instanceof Temporal.ZonedDateTime) {
         timestamp = 0n;
-    }
-    else if (from instanceof Temporal.Instant) {
+    } else if (from instanceof Temporal.Instant) {
         timestamp = BigInt(from.epochNanoseconds);
         isBigInt = true;
-    }
-    else if (from instanceof Datetime_global) {
+    } else if (from instanceof Datetime_global) {
         timestamp = from.time.epochNanoseconds;
         isBigInt = true;
-    }
-    else if (typeof from === 'bigint') {
+    } else if (typeof from === 'bigint') {
         timestamp = from;
         isBigInt = true;
-    }
-    else if (typeof from === 'string') {
+    } else if (typeof from === 'string') {
         timestamp = Date.parse(from);
+    } else {
+        // @ts-ignore
+        timestamp = Math.trunc(from);
     }
-    else {
-        timestamp = Math.trunc(+from);
-    }
-    if (Number.isNaN(timestamp)) {
+    if (typeof timestamp === 'number' || new.target === undefined) {
+        if (!Number.isSafeInteger(timestamp)) {
+            return "Invalid Date";
+        }
     }
     const time = from instanceof Temporal.ZonedDateTime ? from : new Temporal.ZonedDateTime(BigInt(timestamp) * (isBigInt ? 1n : 1000000n), timezoneId);
-    if (new.target) {
+    if (new.target)
         this.time = time;
-    }
     else {
-        return Datetime_global.prototype.toString.call(Object.assign({ time }, Datetime_global.prototype));
+        return Object.assign({time}, Datetime_global.prototype).toString();
     }
 };
 Datetime_global.compare = function (zonedDatetime1, zonedDatetime2) {
@@ -80,11 +79,9 @@ Datetime_global.compare = function (zonedDatetime1, zonedDatetime2) {
     const nano1 = zonedDatetime1.getTimestamp(), nano2 = zonedDatetime2.getTimestamp();
     if (nano1 > nano2) {
         return +1;
-    }
-    else if (nano1 < nano2) {
+    } else if (nano1 < nano2) {
         return -1;
-    }
-    else {
+    } else {
         return +0;
     }
 };
@@ -116,8 +113,7 @@ Datetime_global.fromComponentsUTC = function (year, month = 0, date = 1, hour = 
             year = Date.parse(year);
         }
         date_time.setTime(year);
-    }
-    else if (arguments.length > 1) {
+    } else if (arguments.length > 1) {
         date_time.setTime(Date.UTC(year, month, date, hour, minute, second, millisecond));
     }
     return (BigInt(date_time.getTime()) * 1000000n) + BigInt(nanosecond);
@@ -258,7 +254,9 @@ Datetime_global.prototype.toString = function () {
     const self = this, pad = function (strx, number = 2) {
         return String(strx).padStart(Number(number), '0');
     }, fullYear = pad(self.time.withCalendar('iso8601').year, 4);
-    const offset = Datetime_global.getUTCOffset(self.getTimezoneOffset()), string = `${self.getDayName()} ${self.getMonthName()} ${pad(self.getDate())}`, time = `${pad(self.getHours())}:${pad(self.getMinutes())}:${pad(self.getSeconds())}`;
+    const offset = Datetime_global.getUTCOffset(self.getTimezoneOffset()),
+        string = `${self.getDayName()} ${self.getMonthName()} ${pad(self.getDate())}`,
+        time = `${pad(self.getHours())}:${pad(self.getMinutes())}:${pad(self.getSeconds())}`;
     return `${string} ${fullYear} ${time} ${offset} (${self.time.timeZoneId})`;
 };
 /**
@@ -273,9 +271,11 @@ Datetime_global.prototype.toHTML = function () {
     const date = new Date(this.time.epochMilliseconds);
     return `<time datetime="${date.toISOString()}">${date}</time>`;
 };
+
 export function htmlencode(string) {
     return String(string).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 }
+
 Datetime_global.prototype.toHTMLFormatted = function (dtg, format) {
     return `<time datetime="${dtg.toISOString()}">${htmlencode(dtg.format(format))}</time>`;
 };
@@ -308,7 +308,8 @@ Datetime_global.prototype.toHTML_UTC = function () {
     return `<time datetime="${this.toISOString()}">${this.toUTCString()}</time>`;
 };
 Datetime_global.prototype.toHTMLHistoryString = function () {
-    const options = { smallestUnit: 'seconds', largestUnit: 'years' }, historyString = this.until(new Date, options).toHumanString(2);
+    const options = {smallestUnit: 'seconds', largestUnit: 'years'},
+        historyString = this.until(new Date, options).toHumanString(2);
     return `<time datetime="${this.toISOString()}">${historyString}</time>`;
 };
 /**
@@ -586,9 +587,11 @@ Datetime_global.prototype.setFullYear = function (fullYear, month, date) {
     }, self_time = overflowDatetime_global(this, try_date);
     return (this.time = self_time).epochMilliseconds;
 };
+
 function toNumber(mixed) {
     return Number(BigInt(Number(mixed)));
 }
+
 /**
  * Sets the month, optionally day, modifying the instance in place.
  * Handles overflow/underflow by rolling over to adjacent months/years.
@@ -707,7 +710,8 @@ Datetime_global.prototype.setMilliseconds = function (milliseconds) {
  * console.log(dt.toISOString()); // "2026-04-18T00:00:00.000Z"
  */
 Datetime_global.prototype.setUTCFullYear = function (fullYear, month, date) {
-    const nanosecond = BigInt(this.time.nanosecond), microsecond = BigInt(this.time.microsecond) * 1000n, datetime = new Date(this.time.epochMilliseconds);
+    const nanosecond = BigInt(this.time.nanosecond), microsecond = BigInt(this.time.microsecond) * 1000n,
+        datetime = new Date(this.time.epochMilliseconds);
     month = arguments.length > 1 ? month : datetime.getUTCMonth();
     date = arguments.length > 2 ? date : datetime.getUTCDate();
     const returnValue = BigInt(datetime.setUTCFullYear(fullYear, month, date));
@@ -731,7 +735,8 @@ Datetime_global.prototype.setUTCFullYear = function (fullYear, month, date) {
  * console.log(dt.toISOString()); // "2025-04-18T15:00:00.000Z"
  */
 Datetime_global.prototype.setUTCHours = function (hours, minutes, seconds, milliseconds) {
-    const nanosecond = BigInt(this.time.nanosecond), microsecond = BigInt(this.time.microsecond) * 1000n, date = new Date(this.time.epochMilliseconds);
+    const nanosecond = BigInt(this.time.nanosecond), microsecond = BigInt(this.time.microsecond) * 1000n,
+        date = new Date(this.time.epochMilliseconds);
     minutes = arguments.length > 1 ? minutes : date.getUTCMinutes();
     seconds = arguments.length > 2 ? seconds : date.getUTCSeconds();
     milliseconds = arguments.length > 3 ? milliseconds : date.getUTCMilliseconds();
@@ -797,8 +802,7 @@ Datetime_global.fromTemporalZonedDateTime = function (zonedDatetime) {
     const self = Object.create(Datetime_global.prototype);
     if (zonedDatetime instanceof Temporal.ZonedDateTime) {
         self.time = zonedDatetime;
-    }
-    else {
+    } else {
         self.time = Temporal.ZonedDateTime.from(zonedDatetime);
     }
     return self;
@@ -863,25 +867,26 @@ Datetime_global.getUTCOffset = function (offset) {
 Datetime_global.htmlToCurrentTime = function (timetags = []) {
     const now = Temporal.Now.zonedDateTimeISO();
     Array.from(timetags).forEach(function (each) {
-        const tz = each.getAttribute('data-iana-timezone') ?? Temporal.Now.timeZoneId(), d = new Datetime_global(Date.parse(each.dateTime), tz), f = each.getAttribute('data-datetime-global-format') ?? 'D M d Y H:i:s \\U\\T\\CO (e)';
+        const tz = each.getAttribute('data-iana-timezone') ?? Temporal.Now.timeZoneId(),
+            d = new Datetime_global(Date.parse(each.dateTime), tz),
+            f = each.getAttribute('data-datetime-global-format') ?? 'D M d Y H:i:s \\U\\T\\CO (e)';
         switch (f) {
-            case "[TemporalOffset]":
-                {
-                    const target = d.toTemporalZonedDateTime();
-                    const isFuture = target.epochMilliseconds > now.epochMilliseconds, largestUnit = 'days';
-                    const duration = isFuture ? now.until(target, { largestUnit }) : target.until(now, { largestUnit });
-                    const parts = [];
-                    if (duration.days)
-                        parts.push(`${duration.days} day${duration.days !== 1 ? 's' : ''}`);
-                    if (duration.hours)
-                        parts.push(`${duration.hours} hour${duration.hours !== 1 ? 's' : ''}`);
-                    if (duration.minutes)
-                        parts.push(`${duration.minutes} minute${duration.minutes !== 1 ? 's' : ''}`);
-                    if (duration.seconds && parts.length === 0)
-                        parts.push(`${duration.seconds} second${duration.seconds !== 1 ? 's' : ''}`);
-                    const join = parts.map(s => s.trim()).join(', ');
-                    each.innerText = isFuture ? 'in ' + join : join + ' ago';
-                }
+            case "[TemporalOffset]": {
+                const target = d.toTemporalZonedDateTime();
+                const isFuture = target.epochMilliseconds > now.epochMilliseconds, largestUnit = 'days';
+                const duration = isFuture ? now.until(target, {largestUnit}) : target.until(now, {largestUnit});
+                const parts = [];
+                if (duration.days)
+                    parts.push(`${duration.days} day${duration.days !== 1 ? 's' : ''}`);
+                if (duration.hours)
+                    parts.push(`${duration.hours} hour${duration.hours !== 1 ? 's' : ''}`);
+                if (duration.minutes)
+                    parts.push(`${duration.minutes} minute${duration.minutes !== 1 ? 's' : ''}`);
+                if (duration.seconds && parts.length === 0)
+                    parts.push(`${duration.seconds} second${duration.seconds !== 1 ? 's' : ''}`);
+                const join = parts.map(s => s.trim()).join(', ');
+                each.innerText = isFuture ? 'in ' + join : join + ' ago';
+            }
                 return;
         }
         each.innerText = d.format(f);
@@ -902,17 +907,13 @@ export const formatOffsetFromNow = function (date) {
     const days = Math.floor(hours / 24);
     if (absDiffMs < 1000) {
         return "now";
-    }
-    else if (seconds < 60) {
+    } else if (seconds < 60) {
         return `${isFuture ? "in " : ""}${seconds} second${seconds === 1 ? "" : "s"}${isFuture ? "" : " ago"}`;
-    }
-    else if (minutes < 60) {
+    } else if (minutes < 60) {
         return `${isFuture ? "in " : ""}${minutes} minute${minutes === 1 ? "" : "s"}${isFuture ? "" : " ago"}`;
-    }
-    else if (hours < 24) {
+    } else if (hours < 24) {
         return `${isFuture ? "in " : ""}${hours} hour${hours === 1 ? "" : "s"}${isFuture ? "" : " ago"}`;
-    }
-    else {
+    } else {
         return `${isFuture ? "in " : ""}${days} day${days === 1 ? "" : "s"}${isFuture ? "" : " ago"}`;
     }
 };
@@ -1081,9 +1082,19 @@ Datetime_global.prototype.format = function (pattern) {
     const hour24 = pad(datetime_local.getHours()), dayName = datetime_local.getDayName();
     const iso8601 = datetime_local, dayNameFull = datetime_local.getFullDayName();
     const dayNumberMonth = pad(datetime_local.getDayNumberMonth()), N = iso8601.time.dayOfWeek.toString(), //iso8601.time.dayOfWeek
-    W = iso8601.time?.weekOfYear?.toString() ?? 'undefined', w = iso8601.getDay().toString(), z = iso8601.time.daysInYear.toString(), m = pad(datetime_local.getMonth() + 1), M = datetime_local.getMonthName(), F = datetime_local.getFullMonthName(), hour12 = pad(+hour24 === 0 ? 12 : +hour24), dayInMonth = datetime_local.time.daysInMonth.toString(), leap = datetime_local.time.inLeapYear ? '1' : '0', X = pad(datetime_local.getFullYear(), 4), getYear = pad(datetime_local.getYear(), 2), minutes = pad(datetime_local.getMinutes()), seconds = pad(datetime_local.getSeconds()), datetime_timezone = datetime_local.time.timeZoneId, offset = Datetime_global.getUTCOffset(datetime_local.getTimezoneOffset()).replace(/UTC/, ''), currentDate = datetime_local.toDate(), B = toSwatchInternetTime(currentDate), microseconds = `${pad(datetime_local.getMilliseconds(), 3)}${pad(datetime_local.time.microsecond, 3)}`, milliseconds = pad(datetime_local.getMilliseconds(), 3);
+        W = iso8601.time?.weekOfYear?.toString() ?? 'undefined', w = iso8601.getDay().toString(),
+        z = iso8601.time.daysInYear.toString(), m = pad(datetime_local.getMonth() + 1),
+        M = datetime_local.getMonthName(), F = datetime_local.getFullMonthName(),
+        hour12 = pad(+hour24 === 0 ? 12 : +hour24), dayInMonth = datetime_local.time.daysInMonth.toString(),
+        leap = datetime_local.time.inLeapYear ? '1' : '0', X = pad(datetime_local.getFullYear(), 4),
+        getYear = pad(datetime_local.getYear(), 2), minutes = pad(datetime_local.getMinutes()),
+        seconds = pad(datetime_local.getSeconds()), datetime_timezone = datetime_local.time.timeZoneId,
+        offset = Datetime_global.getUTCOffset(datetime_local.getTimezoneOffset()).replace(/UTC/, ''),
+        currentDate = datetime_local.toDate(), B = toSwatchInternetTime(currentDate),
+        microseconds = `${pad(datetime_local.getMilliseconds(), 3)}${pad(datetime_local.time.microsecond, 3)}`,
+        milliseconds = pad(datetime_local.getMilliseconds(), 3);
     return String(string).replace(/\[[a-zA-Z0-9\-_]+]/g, function (substring) {
-        const f = substring.toLowerCase(), each = { innerText: f };
+        const f = substring.toLowerCase(), each = {innerText: f};
         if (/^\[[a-zA-Z0-9\-_]+]$/i.test(f)) {
             switch (f) {
                 case "[offsetfromnow]":
@@ -1183,9 +1194,11 @@ Datetime_global.prototype.format = function (pattern) {
         return strxx;
     });
 };
+
 function underscoreNumber(n) {
     return chunkArray(Array.from(BigInt(n).toString()).reverse(), 3).map(chunk => chunk.reverse().join().replace(/,/g, '')).reverse().join().replace(/,/g, '_');
 }
+
 function chunkArray(array, chunkSize) {
     const result = [];
     array = Array.from(array);
@@ -1195,10 +1208,12 @@ function chunkArray(array, chunkSize) {
     }
     return result;
 }
+
 function addSignToNumber(n, chunk = true) {
     const strx = String((chunk ? underscoreNumber : BigInt)(n));
     return strx.startsWith('-') ? strx : `+${strx}`;
 }
+
 export const noFormat = function (string) {
     return String(string).replace(/[a-zA-Z]/g, '\\$&');
 };
@@ -1207,27 +1222,21 @@ export const plainToZoned = function (tempTime) {
     const temporalTimezoneId = Temporal.Now.timeZoneId();
     if (tempTime instanceof Datetime_global) {
         time = tempTime;
-    }
-    else if (tempTime instanceof Date || tempTime instanceof Temporal.ZonedDateTime || tempTime instanceof Temporal.Instant) {
+    } else if (tempTime instanceof Date || tempTime instanceof Temporal.ZonedDateTime || tempTime instanceof Temporal.Instant) {
         time = new Datetime_global(tempTime);
-    }
-    else if (tempTime instanceof Temporal.PlainDateTime) {
+    } else if (tempTime instanceof Temporal.PlainDateTime) {
         time = new Datetime_global(tempTime.toZonedDateTime(temporalTimezoneId));
-    }
-    else if (tempTime instanceof Temporal.PlainDate) {
+    } else if (tempTime instanceof Temporal.PlainDate) {
         time = new Datetime_global(tempTime.toPlainDateTime({
             hour: 0, minute: 0, second: 0,
         }).toZonedDateTime(temporalTimezoneId));
-    }
-    else if (tempTime instanceof Temporal.PlainYearMonth) {
-        time = new Datetime_global(tempTime.toPlainDate({ day: 1 }).toPlainDateTime({
+    } else if (tempTime instanceof Temporal.PlainYearMonth) {
+        time = new Datetime_global(tempTime.toPlainDate({day: 1}).toPlainDateTime({
             hour: 0, minute: 0, second: 0,
         }).toZonedDateTime(temporalTimezoneId));
-    }
-    else if (tempTime instanceof Temporal.PlainTime) {
+    } else if (tempTime instanceof Temporal.PlainTime) {
         time = new Datetime_global(Temporal.Now.plainDateISO().toPlainDateTime(tempTime).toZonedDateTime(temporalTimezoneId));
-    }
-    else {
+    } else {
         throw new TypeError('Custom object time property must be Datetime_global, Date, Temporal.ZonedDateTime, Temporal.Instant, Temporal.PlainDateTime, Temporal.PlainDate, Temporal.PlainYearMonth, Temporal.PlainTime, or undefined');
     }
     return time;
@@ -1250,8 +1259,7 @@ Datetime_global.prototype.templateFormat = function (strings, ...expressions) {
         let exp = expressions[i], formatIt = false;
         if (exp === null) {
             exp = self.toString();
-        }
-        else {
+        } else {
             switch (typeof exp) {
                 case "bigint":
                 case "number":
@@ -1262,51 +1270,41 @@ Datetime_global.prototype.templateFormat = function (strings, ...expressions) {
                     break;
                 case "symbol":
                     throw new TypeError('Symbols are not supported; convert to string');
-                case "function":
-                    {
-                        const cloned = self.clone();
-                        exp = String(exp.call(cloned, cloned));
-                    }
+                case "function": {
+                    const cloned = self.clone();
+                    exp = String(exp.call(cloned, cloned));
+                }
                     break;
                 case "object":
                     if (exp instanceof Datetime_global) {
                         exp = exp.toString();
-                    }
-                    else if (exp instanceof Date) {
+                    } else if (exp instanceof Date) {
                         exp = exp.toString();
-                    }
-                    else if (exp instanceof Temporal.ZonedDateTime || exp instanceof Temporal.Instant) {
+                    } else if (exp instanceof Temporal.ZonedDateTime || exp instanceof Temporal.Instant) {
                         exp = Datetime_global(exp);
-                    }
-                    else if (exp instanceof Temporal.PlainDateTime) {
+                    } else if (exp instanceof Temporal.PlainDateTime) {
                         exp = (new Datetime_global(exp.toZonedDateTime(Temporal.Now.timeZoneId()))).format('D Y H:i:s');
-                    }
-                    else if (exp instanceof Temporal.PlainTime) {
+                    } else if (exp instanceof Temporal.PlainTime) {
                         exp = exp.toLocaleString('en-US', {
                             hour: 'numeric',
                             minute: '2-digit',
                             second: '2-digit',
                             hour12: false,
                         });
-                    }
-                    else if (exp instanceof Temporal.PlainYearMonth) {
-                        exp = exp.toLocaleString('en-US', { month: 'long', year: 'numeric' });
-                    }
-                    else if (exp instanceof Temporal.PlainDate) {
-                        exp = exp.toLocaleString('en-US', { month: 'long', year: 'numeric', day: "2-digit" });
-                    }
-                    else {
+                    } else if (exp instanceof Temporal.PlainYearMonth) {
+                        exp = exp.toLocaleString('en-US', {month: 'long', year: 'numeric'});
+                    } else if (exp instanceof Temporal.PlainDate) {
+                        exp = exp.toLocaleString('en-US', {month: 'long', year: 'numeric', day: "2-digit"});
+                    } else {
                         // logic for objects, add `formatIt = true;` to pass it through format
                         // throw new Error('invalid Object passed to Datetime_global.prototype.templateFormat');
                         if ('raw' in exp) {
                             exp = String(exp.raw);
-                        }
-                        else {
+                        } else {
                             let time, resultExp;
                             if ('time' in exp && exp['time'] !== undefined) {
                                 time = plainToZoned(exp['time']);
-                            }
-                            else {
+                            } else {
                                 time = new Datetime_global(self.toTemporalZonedDateTime());
                             }
                             if ('callback' in exp) {
@@ -1317,14 +1315,11 @@ Datetime_global.prototype.templateFormat = function (strings, ...expressions) {
                             }
                             if ('pattern' in exp && ('localeOptions' in exp || 'locale' in exp)) {
                                 throw new TypeError('Cannot combine pattern with locale or localeOptions');
-                            }
-                            else if ('pattern' in exp && typeof exp['pattern'] === 'string') {
+                            } else if ('pattern' in exp && typeof exp['pattern'] === 'string') {
                                 resultExp = time.format(exp['pattern']);
-                            }
-                            else if ('localeOptions' in exp || 'locale' in exp) {
+                            } else if ('localeOptions' in exp || 'locale' in exp) {
                                 resultExp = time.toTemporalZonedDateTime().toLocaleString(exp['locale'], exp['localeOptions']);
-                            }
-                            else {
+                            } else {
                                 throw new TypeError('if a pattern is on a custom object then it must be a string');
                             }
                             exp = resultExp;
@@ -1360,7 +1355,8 @@ Datetime_global.daynamesFull = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thu
 Datetime_global.monthnamesFull = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 // todo correctly handle this
 export const toSwatchInternetTime = function (date) {
-    const datetime = new Date(date), userTimestamp = BigInt(datetime.setUTCHours(datetime.getUTCHours() + 1)), midnightTimestamp = BigInt(datetime.setUTCHours(1, 0, 0, 0));
+    const datetime = new Date(date), userTimestamp = BigInt(datetime.setUTCHours(datetime.getUTCHours() + 1)),
+        midnightTimestamp = BigInt(datetime.setUTCHours(1, 0, 0, 0));
     // const MS_PER_BEAT: bigint = 86400000n / 1000n; // 86_400 ms per beat
     const elapsedMs = userTimestamp - midnightTimestamp;
     return ((elapsedMs * 1000n) / 86400000n).toString().padStart(3, '0'); // Compute beats as BigInt
@@ -1427,8 +1423,7 @@ export const ordinalSuffix = function (value) {
     let $suffix;
     if ($number >= 11 && $number <= 13) {
         $suffix = 'th';
-    }
-    else {
+    } else {
         switch ($number % 10) {
             case 1:
                 $suffix = 'st';
@@ -1464,6 +1459,7 @@ Datetime_global.prototype.since = function (other, options) {
     const zdt = new Datetime_global(other, this.getTimezoneId());
     return new ZDTDuration(this.time.since(zdt.toTemporalZonedDateTime(), options));
 };
+
 function toPrimitive(o, preference) {
     preference = ["number", "string", "default"].includes(preference) ? preference : "default";
     if (typeof o === "object" || typeof o === "function") {
@@ -1472,8 +1468,7 @@ function toPrimitive(o, preference) {
             if (!(typeof p === "object" || typeof p === "function")) {
                 return p;
             }
-        }
-        else {
+        } else {
             for (let methodName of (preference === "string" ? ["toString", "valueOf"] : ["valueOf", "toString"])) {
                 if (typeof o[methodName] === "function") {
                     const p = o[methodName]();
@@ -1483,24 +1478,22 @@ function toPrimitive(o, preference) {
                 }
             }
         }
-    }
-    else {
+    } else {
         return o;
     }
     throw new TypeError('that could not be converted to Primitive');
 }
+
 export function toNumeric(value, type = null) {
     // Handle object conversion
     value = toPrimitive(value, "number");
     // At this point, value should be a primitive
     if (type === 'Number') {
         return +value; // Unary plus, let errors propagate
-    }
-    else if (type === 'BigInt') {
+    } else if (type === 'BigInt') {
         try {
             return BigInt(value);
-        }
-        catch (e) {
+        } catch (e) {
             if (e instanceof TypeError) {
                 throw e; // Rethrow TypeError
             }
@@ -1509,8 +1502,7 @@ export function toNumeric(value, type = null) {
             }
             throw e; // Rethrow other errors
         }
-    }
-    else {
+    } else {
         // Default case: return BigInt as-is, others get unary plus
         if (typeof value === 'bigint') {
             return value;
@@ -1518,6 +1510,7 @@ export function toNumeric(value, type = null) {
         return +value; // Unary plus, let errors propagate
     }
 }
+
 /**
  * Adjusts a `Temporal.ZonedDateTime` or `Datetime_global` object by applying overflow or underflow changes
  * to its date and time components based on the provided `overflow_overwrite` values.
@@ -1578,7 +1571,7 @@ export function overflowDatetime_global(zonedDateTime, overflow_overwrite) {
     };
     // Create a Temporal.Duration to handle the overflow
     const temporalDuration = new Temporal.Duration(duration.years, duration.months, 0, // weeks, not used
-    duration.days, duration.hours, duration.minutes, duration.seconds, duration.milliseconds, duration.microseconds, duration.nanoseconds);
+        duration.days, duration.hours, duration.minutes, duration.seconds, duration.milliseconds, duration.microseconds, duration.nanoseconds);
     // this works, shut up (grok says so)
     // Add the duration to the original ZonedDateTime to handle overflows
     return self_time.add(temporalDuration);

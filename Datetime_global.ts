@@ -996,17 +996,18 @@ export const Datetime_global: Datetime_global_constructor = function (
     } else if (typeof from === 'string') {
         timestamp = Date.parse(from);
     } else {
-        timestamp = Math.trunc(+from);
+        // @ts-ignore
+        timestamp = Math.trunc(from);
     }
-    if (Number.isNaN(timestamp)) {
+    if (typeof timestamp === 'number' || new.target === undefined) {
+        if (!Number.isSafeInteger(timestamp)) {
+            return "Invalid Date";
+        }
     }
     const time: Temporal.ZonedDateTime = from instanceof Temporal.ZonedDateTime ? from : new Temporal.ZonedDateTime(
-        BigInt(timestamp) * (isBigInt ? 1n : 1_000_000n),
-        timezoneId);
-    if (new.target) {
-        this.time = time;
-    } else {
-        return Datetime_global.prototype.toString.call(Object.assign({time}, Datetime_global.prototype));
+        BigInt(timestamp) * (isBigInt ? 1n : 1_000_000n), timezoneId);
+    if (new.target) this.time = time; else {
+        return Object.assign({time}, Datetime_global.prototype).toString();
     }
 } as Datetime_global_constructor;
 

@@ -101,6 +101,9 @@ const Datetime_HTML: Datetime_HTML_constructor = function (this: Datetime_HTML, 
     }
 } as Datetime_HTML_constructor;
 Object.setPrototypeOf(Datetime_HTML.prototype, Datetime_global.prototype);
+Object.setPrototypeOf(Datetime_HTML, Datetime_global);
+
+
 /**
  * Returns the date-time as an ISO 8601 string in UTC (e.g., "2025-04-18T12:34:56.789Z").
  * Matches Date.prototype.toISOString, with millisecond precision.
@@ -111,36 +114,42 @@ Datetime_HTML.prototype.toJSON = Datetime_HTML.prototype.toISOString = function 
 };
 
 Datetime_HTML.prototype.toHTMLTimeFormatted = function (this: Datetime_HTML, format: string): HTMLTimeElement {
-    const time = document.createElement('time');
+    const time: HTMLTimeElement = createTimeElement();
     time.textContent = this.format(format);
     time.dateTime = this.toISOString();
     return time;
 };
 
 Datetime_HTML.prototype.toHTMLTimeGMT = function (this: Datetime_HTML): HTMLTimeElement {
-    const time = document.createElement('time');
+    const time: HTMLTimeElement = createTimeElement();
     time.textContent = this.toDate().toUTCString();
     time.dateTime = this.toISOString();
     return time;
 };
 
 Datetime_HTML.prototype.toHTMLTimeUTC = function (this: Datetime_HTML): HTMLTimeElement {
-    const time = document.createElement('time');
+    const time: HTMLTimeElement = createTimeElement();
     time.textContent = this.toUTCString()
     time.dateTime = this.toISOString();
     return time;
 };
 
 Datetime_HTML.prototype.toHTMLTimeElement = function (this: Datetime_HTML): HTMLTimeElement {
-    const time = document.createElement('time');
+    const time: HTMLTimeElement = createTimeElement();
     time.textContent = this.toDate().toString();
     time.dateTime = this.toISOString();
     return time;
 };
 
 Datetime_HTML.prototype.toHTMLTime = function (this: Datetime_HTML): HTMLTimeElement {
-    const time = document.createElement('time');
+    const time: HTMLTimeElement = createTimeElement();
     time.textContent = this.toString();
     time.dateTime = this.toISOString();
     return time;
 };
+
+export function createTimeElement(): HTMLTimeElement {
+    const time: HTMLTimeElement = document.createElement('time');
+    time.className = 'Datetime_HTML';
+    return time;
+}
