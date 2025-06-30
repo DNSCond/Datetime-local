@@ -21,6 +21,17 @@ export type Datetime_global = {
     constructor: Datetime_global_constructor,
     time: Temporal.ZonedDateTime,
     [Symbol.toStringTag]: string,
+    get year(): number,
+    get month(): number,
+    get day(): number,
+    get hour(): number,
+    get minute(): number,
+    get second(): number,
+    get millisecond(): number,
+    get microsecond(): number,
+    get nanosecond(): number,
+    get epochMilliseconds(): number,
+    get epochNanoseconds(): number,
 
     /**
      * Returns a string representation of the date-time, including timezone offset and ID.
@@ -996,18 +1007,105 @@ export const Datetime_global: Datetime_global_constructor = function (
     } else if (typeof from === 'string') {
         timestamp = Date.parse(from);
     } else {
-        // @ts-ignore
-        timestamp = Math.trunc(from);
+        timestamp = Math.trunc(from as number);
     }
     if (typeof timestamp === 'number' && new.target === undefined) {
         if (!Number.isSafeInteger(timestamp)) {
             return "Invalid Date";
         }
     }
-    const time: Temporal.ZonedDateTime = from instanceof Temporal.ZonedDateTime ? from : new Temporal.ZonedDateTime(
+    const value: Temporal.ZonedDateTime = from instanceof Temporal.ZonedDateTime ? from : new Temporal.ZonedDateTime(
         BigInt(timestamp) * (isBigInt ? 1n : 1_000_000n), timezoneId);
-    if (new.target) this.time = time; else {
-        return Object.assign({time}, Datetime_global.prototype).toString();
+    //if(new.target)this.time=time;else{return Object.assign({time},Datetime_global.prototype).toString()}
+    const self: Datetime_global = new.target ? this : Object.create(Datetime_global.prototype);
+    const [writable, enumerable, configurable] = [true, true, true];
+    Object.defineProperties(self, {
+        time: {
+            value,
+            writable,
+            enumerable,
+            configurable,
+        },
+        year: {
+            get(): number {
+                return self.getFullYear();
+            },
+            enumerable,
+            configurable,
+        },
+        month: {
+            get(): number {
+                return self.getMonth();
+            },
+            enumerable,
+            configurable,
+        },
+        day: {
+            get(): number {
+                return self.getDate();
+            },
+            enumerable,
+            configurable,
+        },
+        hour: {
+            get(): number {
+                return self.getHours();
+            },
+            enumerable,
+            configurable,
+        },
+        minute: {
+            get(): number {
+                return self.getMinutes();
+            },
+            enumerable,
+            configurable,
+        },
+        second: {
+            get(): number {
+                return self.getSeconds();
+            },
+            enumerable,
+            configurable,
+        },
+        millisecond: {
+            get(): number {
+                return self.time.millisecond;
+            },
+            enumerable,
+            configurable,
+        },
+        microsecond: {
+            get(): number {
+                return self.time.microsecond;
+            },
+            enumerable,
+            configurable,
+        },
+        nanosecond: {
+            get(): number {
+                return self.time.nanosecond;
+            },
+            enumerable,
+            configurable,
+        },
+        epochMilliseconds: {
+            get(): number {
+                return self.time.epochMilliseconds;
+            },
+            enumerable,
+            configurable,
+        },
+        epochNanoseconds: {
+            get(): bigint {
+                return self.time.epochNanoseconds;
+            },
+            enumerable,
+            configurable,
+        },
+    });
+    if (!new.target) {
+        return self.toString();
     }
 } as Datetime_global_constructor;
 
