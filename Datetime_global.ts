@@ -1028,77 +1028,77 @@ export const Datetime_global: Datetime_global_constructor = function (
         },
         year: {
             get(): number {
-                return self.getFullYear();
+                return this.getFullYear();
             },
             enumerable,
             configurable,
         },
         month: {
             get(): number {
-                return self.getMonth();
+                return this.getMonth();
             },
             enumerable,
             configurable,
         },
         day: {
             get(): number {
-                return self.getDate();
+                return this.getDate();
             },
             enumerable,
             configurable,
         },
         hour: {
             get(): number {
-                return self.getHours();
+                return this.getHours();
             },
             enumerable,
             configurable,
         },
         minute: {
             get(): number {
-                return self.getMinutes();
+                return this.getMinutes();
             },
             enumerable,
             configurable,
         },
         second: {
             get(): number {
-                return self.getSeconds();
+                return this.getSeconds();
             },
             enumerable,
             configurable,
         },
         millisecond: {
             get(): number {
-                return self.time.millisecond;
+                return this.time.millisecond;
             },
             enumerable,
             configurable,
         },
         microsecond: {
             get(): number {
-                return self.time.microsecond;
+                return this.time.microsecond;
             },
             enumerable,
             configurable,
         },
         nanosecond: {
             get(): number {
-                return self.time.nanosecond;
+                return this.time.nanosecond;
             },
             enumerable,
             configurable,
         },
         epochMilliseconds: {
             get(): number {
-                return self.time.epochMilliseconds;
+                return this.time.epochMilliseconds;
             },
             enumerable,
             configurable,
         },
         epochNanoseconds: {
             get(): bigint {
-                return self.time.epochNanoseconds;
+                return this.time.epochNanoseconds;
             },
             enumerable,
             configurable,

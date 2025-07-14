@@ -82,77 +82,77 @@ export const Datetime_global = function (from = undefined, timezoneId = Temporal
         },
         year: {
             get() {
-                return self.getFullYear();
+                return this.getFullYear();
             },
             enumerable,
             configurable,
         },
         month: {
             get() {
-                return self.getMonth();
+                return this.getMonth();
             },
             enumerable,
             configurable,
         },
         day: {
             get() {
-                return self.getDate();
+                return this.getDate();
             },
             enumerable,
             configurable,
         },
         hour: {
             get() {
-                return self.getHours();
+                return this.getHours();
             },
             enumerable,
             configurable,
         },
         minute: {
             get() {
-                return self.getMinutes();
+                return this.getMinutes();
             },
             enumerable,
             configurable,
         },
         second: {
             get() {
-                return self.getSeconds();
+                return this.getSeconds();
             },
             enumerable,
             configurable,
         },
         millisecond: {
             get() {
-                return self.time.millisecond;
+                return this.time.millisecond;
             },
             enumerable,
             configurable,
         },
         microsecond: {
             get() {
-                return self.time.microsecond;
+                return this.time.microsecond;
             },
             enumerable,
             configurable,
         },
         nanosecond: {
             get() {
-                return self.time.nanosecond;
+                return this.time.nanosecond;
             },
             enumerable,
             configurable,
         },
         epochMilliseconds: {
             get() {
-                return self.time.epochMilliseconds;
+                return this.time.epochMilliseconds;
             },
             enumerable,
             configurable,
         },
         epochNanoseconds: {
             get() {
-                return self.time.epochNanoseconds;
+                return this.time.epochNanoseconds;
             },
             enumerable,
             configurable,
