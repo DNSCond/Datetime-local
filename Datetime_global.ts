@@ -24,6 +24,7 @@ export type Datetime_global = {
     get year(): number,
     get month(): number,
     get day(): number,
+    get dayOfWeek(): number,
     get hour(): number,
     get minute(): number,
     get second(): number,
@@ -31,7 +32,7 @@ export type Datetime_global = {
     get microsecond(): number,
     get nanosecond(): number,
     get epochMilliseconds(): number,
-    get epochNanoseconds(): number,
+    get epochNanoseconds(): bigint,
 
     /**
      * Returns a string representation of the date-time, including timezone offset and ID.
@@ -1020,88 +1021,55 @@ export const Datetime_global: Datetime_global_constructor = function (
     const self: Datetime_global = new.target ? this : Object.create(Datetime_global.prototype);
     const [writable, enumerable, configurable] = [true, true, true];
     Object.defineProperties(self, {
-        time: {
-            value,
-            writable,
-            enumerable,
-            configurable,
-        },
+        time: {value, writable, enumerable, configurable,},
         year: {
-            get(): number {
+            get(this: Datetime_global): number {
                 return this.getFullYear();
-            },
-            enumerable,
-            configurable,
-        },
-        month: {
-            get(): number {
-                return this.getMonth();
-            },
-            enumerable,
-            configurable,
-        },
-        day: {
-            get(): number {
+            }, enumerable, configurable,
+        }, month: {
+            get(this: Datetime_global): number {
+                return this.time.month;
+            }, enumerable, configurable,
+        }, day: {
+            get(this: Datetime_global): number {
                 return this.getDate();
-            },
-            enumerable,
-            configurable,
-        },
-        hour: {
-            get(): number {
+            }, enumerable, configurable,
+        }, dayOfWeek: {
+            get(this: Datetime_global): number {
+                return this.time.dayOfWeek;
+            }, enumerable, configurable,
+        }, hour: {
+            get(this: Datetime_global): number {
                 return this.getHours();
-            },
-            enumerable,
-            configurable,
-        },
-        minute: {
-            get(): number {
+            }, enumerable, configurable,
+        }, minute: {
+            get(this: Datetime_global): number {
                 return this.getMinutes();
-            },
-            enumerable,
-            configurable,
-        },
-        second: {
-            get(): number {
+            }, enumerable, configurable,
+        }, second: {
+            get(this: Datetime_global): number {
                 return this.getSeconds();
-            },
-            enumerable,
-            configurable,
-        },
-        millisecond: {
-            get(): number {
+            }, enumerable, configurable,
+        }, millisecond: {
+            get(this: Datetime_global): number {
                 return this.time.millisecond;
-            },
-            enumerable,
-            configurable,
-        },
-        microsecond: {
-            get(): number {
+            }, enumerable, configurable,
+        }, microsecond: {
+            get(this: Datetime_global): number {
                 return this.time.microsecond;
-            },
-            enumerable,
-            configurable,
-        },
-        nanosecond: {
-            get(): number {
+            }, enumerable, configurable,
+        }, nanosecond: {
+            get(this: Datetime_global): number {
                 return this.time.nanosecond;
-            },
-            enumerable,
-            configurable,
-        },
-        epochMilliseconds: {
-            get(): number {
+            }, enumerable, configurable,
+        }, epochMilliseconds: {
+            get(this: Datetime_global): number {
                 return this.time.epochMilliseconds;
-            },
-            enumerable,
-            configurable,
-        },
-        epochNanoseconds: {
-            get(): bigint {
+            }, enumerable, configurable,
+        }, epochNanoseconds: {
+            get(this: Datetime_global): bigint {
                 return this.time.epochNanoseconds;
-            },
-            enumerable,
-            configurable,
+            }, enumerable, configurable,
         },
     });
     if (!new.target) {
@@ -1153,7 +1121,7 @@ Datetime_global.fromComponentsUTC = function (
     year: number | string | undefined, month: number = 0, date: number = 1,
     hour: number = 0, minute: number = 0, second: number = 0,
     millisecond: number = 0, nanosecond: bigint | number = 0n): bigint {
-    const date_time: Date = new Date();
+    const date_time: Date = new Date;
     if (arguments.length === 1) {
         if (typeof year === 'string') {
             year = Date.parse(year);
@@ -2198,7 +2166,7 @@ Datetime_global.prototype.toTimeString = function (this: Datetime_global): strin
  * @see https://www.php.net/manual/en/datetime.format.php for placeholder details.
  */
 Datetime_global.prototype.format = function (this: Datetime_global, pattern: string): string {
-    const string: string = pattern;
+    const string: string = pattern ?? '';
     //(new this.constructor(this, this?.time?.timeZoneId))
     const pad = function (numberToPad: number, number: number = 2, plusIfPositive: boolean = false): string {
         return (numberToPad < 0 ? '-' : (plusIfPositive ? '+' : '')) + String(Math.abs(numberToPad)).padStart(Number(number), '0');
@@ -2492,32 +2460,12 @@ Datetime_global.monthnamesFull = ['January', 'February', 'March', 'April', 'May'
 
 // todo correctly handle this
 export const toSwatchInternetTime = function (date: Date | number | string): string {
-    const datetime: Date = new Date(date), userTimestamp: bigint =
-            BigInt(datetime.setUTCHours(datetime.getUTCHours() + 1)),
-        midnightTimestamp: bigint = BigInt(datetime.setUTCHours(1, 0, 0, 0));
-    // const MS_PER_BEAT: bigint = 86400000n / 1000n; // 86_400 ms per beat
-    const elapsedMs: bigint = userTimestamp - midnightTimestamp;
-    return ((elapsedMs * 1000n) / 86400_000n).toString().padStart(3, '0');  // Compute beats as BigInt
+    const datetime: Datetime_global = new Datetime_global(date)
+        .withTimezone('+0100'), userTimestamp: bigint = datetime.epochNanoseconds;
+    const midnightTimestamp: bigint = datetime.startOfDay().epochNanoseconds;// start of day in TZ(+0100)
+    const elapsedNs: bigint = userTimestamp - midnightTimestamp;
+    return ((elapsedNs / 1_000_000n) * 10n / 864_000n).toString().padStart(3, '0');
 };
-
-// export const toSwatchInternetTime = function (input: Date | number | string): string {
-//     const original = new Date(input);
-//
-//     // Set to UTC+1 (BMT): original timestamp + 1h
-//     const bmtTimestamp: bigint = BigInt(original.getTime() + 60 * 60 * 1000);
-//
-//     // Construct midnight BMT for that day (UTC 01:00:00.000)
-//     const midnight = new Date(original);
-//     midnight.setUTCHours(1, 0, 0, 0);
-//     const midnightTimestamp: bigint = BigInt(midnight.getTime());
-//
-//     const elapsedMs: bigint = bmtTimestamp - midnightTimestamp;
-//
-//     // 86400 ms per beat -> 86400000 / 1000
-//     const beats = (elapsedMs * 1000n) / 86400000n;
-//
-//     return beats.toString().padStart(3, '0');
-// };
 
 /**
  * changes the calendar

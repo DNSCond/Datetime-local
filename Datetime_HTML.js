@@ -1,16 +1,13 @@
-import {Datetime_global} from "./Datetime_global.js";
-import {Temporal} from "temporal-polyfill";
-import {CallableClass} from "./proxy.js";
-
+import { Datetime_global } from "./Datetime_global.js";
+import { Temporal } from "temporal-polyfill";
+import { CallableClass } from "./proxy.js";
 export const Datetime_HTML = CallableClass(class Datetime_HTML extends Datetime_global {
     constructor(from, timezoneId = Temporal.Now.timeZoneId()) {
         super(from, timezoneId);
     }
-
     static withoutNew(from, timezoneId = Temporal.Now.timeZoneId()) {
-        return (new this(from, timezoneId)).toHTMLTime();
+        return (new Datetime_HTML(from, timezoneId)).toHTMLTime();
     }
-
     /**
      * Returns the date-time as an ISO 8601 string in UTC (e.g., "2025-04-18T12:34:56.789Z").
      * Matches Date.prototype.toISOString, with millisecond precision.
@@ -19,12 +16,10 @@ export const Datetime_HTML = CallableClass(class Datetime_HTML extends Datetime_
     toJSON() {
         return this.toISOString();
     }
-
     toISOString() {
         return this.toDate().toISOString();
     }
     ;
-
     toHTMLTimeFormatted(format) {
         const time = createTimeElement();
         time.textContent = this.format(format);
@@ -32,7 +27,6 @@ export const Datetime_HTML = CallableClass(class Datetime_HTML extends Datetime_
         return time;
     }
     ;
-
     toHTMLTimeGMT() {
         const time = createTimeElement();
         time.textContent = this.toDate().toUTCString();
@@ -40,7 +34,6 @@ export const Datetime_HTML = CallableClass(class Datetime_HTML extends Datetime_
         return time;
     }
     ;
-
     toHTMLTimeUTC() {
         const time = createTimeElement();
         time.textContent = this.toUTCString();
@@ -48,7 +41,6 @@ export const Datetime_HTML = CallableClass(class Datetime_HTML extends Datetime_
         return time;
     }
     ;
-
     toHTMLTimeElement() {
         const time = createTimeElement();
         time.textContent = this.toDate().toString();
@@ -56,7 +48,6 @@ export const Datetime_HTML = CallableClass(class Datetime_HTML extends Datetime_
         return time;
     }
     ;
-
     toHTMLTime() {
         const time = createTimeElement();
         time.textContent = this.toString();
@@ -65,7 +56,6 @@ export const Datetime_HTML = CallableClass(class Datetime_HTML extends Datetime_
     }
     ;
 });
-
 export function createTimeElement(date, classArray = []) {
     const time = document.createElement('time');
     if (typeof classArray === 'string') {
@@ -78,8 +68,9 @@ export function createTimeElement(date, classArray = []) {
             time.dateTime = date.toISOString();
             // time.textContent = String(date);
             time.dataset.success = 'true';
-        } else {
-            time.dataset.success = 'false'
+        }
+        else {
+            time.dataset.success = 'false';
         }
     }
     return time;

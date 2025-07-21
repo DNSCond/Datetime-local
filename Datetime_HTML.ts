@@ -8,7 +8,7 @@ export const Datetime_HTML = CallableClass(class Datetime_HTML extends Datetime_
     }
 
     static withoutNew(from?: constructorInput, timezoneId: Temporal.TimeZoneLike | string = Temporal.Now.timeZoneId()): HTMLTimeElement {
-        return (new this(from, timezoneId)).toHTMLTime();
+        return (new Datetime_HTML(from, timezoneId)).toHTMLTime();
     }
 
     /**

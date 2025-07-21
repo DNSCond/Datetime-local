@@ -74,88 +74,55 @@ export const Datetime_global = function (from = undefined, timezoneId = Temporal
     const self = new.target ? this : Object.create(Datetime_global.prototype);
     const [writable, enumerable, configurable] = [true, true, true];
     Object.defineProperties(self, {
-        time: {
-            value,
-            writable,
-            enumerable,
-            configurable,
-        },
+        time: { value, writable, enumerable, configurable, },
         year: {
             get() {
                 return this.getFullYear();
-            },
-            enumerable,
-            configurable,
-        },
-        month: {
+            }, enumerable, configurable,
+        }, month: {
             get() {
-                return this.getMonth();
-            },
-            enumerable,
-            configurable,
-        },
-        day: {
+                return this.time.month;
+            }, enumerable, configurable,
+        }, day: {
             get() {
                 return this.getDate();
-            },
-            enumerable,
-            configurable,
-        },
-        hour: {
+            }, enumerable, configurable,
+        }, dayOfWeek: {
+            get() {
+                return this.time.dayOfWeek;
+            }, enumerable, configurable,
+        }, hour: {
             get() {
                 return this.getHours();
-            },
-            enumerable,
-            configurable,
-        },
-        minute: {
+            }, enumerable, configurable,
+        }, minute: {
             get() {
                 return this.getMinutes();
-            },
-            enumerable,
-            configurable,
-        },
-        second: {
+            }, enumerable, configurable,
+        }, second: {
             get() {
                 return this.getSeconds();
-            },
-            enumerable,
-            configurable,
-        },
-        millisecond: {
+            }, enumerable, configurable,
+        }, millisecond: {
             get() {
                 return this.time.millisecond;
-            },
-            enumerable,
-            configurable,
-        },
-        microsecond: {
+            }, enumerable, configurable,
+        }, microsecond: {
             get() {
                 return this.time.microsecond;
-            },
-            enumerable,
-            configurable,
-        },
-        nanosecond: {
+            }, enumerable, configurable,
+        }, nanosecond: {
             get() {
                 return this.time.nanosecond;
-            },
-            enumerable,
-            configurable,
-        },
-        epochMilliseconds: {
+            }, enumerable, configurable,
+        }, epochMilliseconds: {
             get() {
                 return this.time.epochMilliseconds;
-            },
-            enumerable,
-            configurable,
-        },
-        epochNanoseconds: {
+            }, enumerable, configurable,
+        }, epochNanoseconds: {
             get() {
                 return this.time.epochNanoseconds;
-            },
-            enumerable,
-            configurable,
+            }, enumerable, configurable,
         },
     });
     if (!new.target) {
@@ -198,7 +165,7 @@ Datetime_global.compare = function (zonedDatetime1, zonedDatetime2) {
  * // 1745193600000000500n
  */
 Datetime_global.fromComponentsUTC = function (year, month = 0, date = 1, hour = 0, minute = 0, second = 0, millisecond = 0, nanosecond = 0n) {
-    const date_time = new Date();
+    const date_time = new Date;
     if (arguments.length === 1) {
         if (typeof year === 'string') {
             year = Date.parse(year);
@@ -1161,7 +1128,7 @@ Datetime_global.prototype.toTimeString = function () {
  * @see https://www.php.net/manual/en/datetime.format.php for placeholder details.
  */
 Datetime_global.prototype.format = function (pattern) {
-    const string = pattern;
+    const string = pattern ?? '';
     //(new this.constructor(this, this?.time?.timeZoneId))
     const pad = function (numberToPad, number = 2, plusIfPositive = false) {
         return (numberToPad < 0 ? '-' : (plusIfPositive ? '+' : '')) + String(Math.abs(numberToPad)).padStart(Number(number), '0');
@@ -1448,29 +1415,12 @@ Datetime_global.daynamesFull = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thu
 Datetime_global.monthnamesFull = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 // todo correctly handle this
 export const toSwatchInternetTime = function (date) {
-    const datetime = new Date(date), userTimestamp = BigInt(datetime.setUTCHours(datetime.getUTCHours() + 1)), midnightTimestamp = BigInt(datetime.setUTCHours(1, 0, 0, 0));
-    // const MS_PER_BEAT: bigint = 86400000n / 1000n; // 86_400 ms per beat
-    const elapsedMs = userTimestamp - midnightTimestamp;
-    return ((elapsedMs * 1000n) / 86400000n).toString().padStart(3, '0'); // Compute beats as BigInt
+    const datetime = new Datetime_global(date)
+        .withTimezone('+0100'), userTimestamp = datetime.epochNanoseconds;
+    const midnightTimestamp = datetime.startOfDay().epochNanoseconds; // start of day in TZ(+0100)
+    const elapsedNs = userTimestamp - midnightTimestamp;
+    return ((elapsedNs / 1000000n) * 10n / 864000n).toString().padStart(3, '0');
 };
-// export const toSwatchInternetTime = function (input: Date | number | string): string {
-//     const original = new Date(input);
-//
-//     // Set to UTC+1 (BMT): original timestamp + 1h
-//     const bmtTimestamp: bigint = BigInt(original.getTime() + 60 * 60 * 1000);
-//
-//     // Construct midnight BMT for that day (UTC 01:00:00.000)
-//     const midnight = new Date(original);
-//     midnight.setUTCHours(1, 0, 0, 0);
-//     const midnightTimestamp: bigint = BigInt(midnight.getTime());
-//
-//     const elapsedMs: bigint = bmtTimestamp - midnightTimestamp;
-//
-//     // 86400 ms per beat -> 86400000 / 1000
-//     const beats = (elapsedMs * 1000n) / 86400000n;
-//
-//     return beats.toString().padStart(3, '0');
-// };
 /**
  * changes the calendar
  * @param calender defaults to "iso8601"
