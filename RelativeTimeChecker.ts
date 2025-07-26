@@ -85,34 +85,35 @@ export abstract class TimeElement extends HTMLElement {
     }
 }
 
+type customFormatter = (this: Datetime_global, dt: Datetime_global, element: DT_HTML_Formatter) => string | unknown;
+
 /**
  * for inheritance only
  */
 export abstract class DT_HTML_Formatter extends TimeElement {
-    #callback: ((this: Datetime_global, dt: Datetime_global, element: ClockTime) => string | unknown) | undefined = undefined;
+    #callback: customFormatter | undefined = undefined;
 
-    formatDT(): string {
+    formatDT(defaultFormatter: customFormatter): string {
         const zdt = this.datetime_global;
         if (zdt === null) return "Invalid Date";
         const callback = this.#callback;
-        const format: string = this.getAttribute('format') ?? Datetime_global.FORMAT_DATETIME_GLOBALV3;
-        if (callback === undefined) return zdt.format(format);
-        const result = callback.call(zdt, zdt, this as unknown as ClockTime);
+        if (callback === undefined) return defaultFormatter.call(zdt, zdt, this) as string;
+        const result = callback.call(zdt, zdt, this);
         if (typeof result === 'string') return result; else {
             throw new TypeError('the callback did not return a string');
         }
     }
 
-    set formatCallback(value: unknown) {
+    set formatCallback(value: customFormatter | undefined) {
         if (value === undefined) this.#callback = undefined;
         else if (typeof value === 'function') {
-            this.#callback = value as (this: Datetime_global, dt: Datetime_global, element: ClockTime) => string | unknown;
+            this.#callback = value;
         } else {
             throw new TypeError('your provided formatCallback wasnt a function.');
         }
     }
 
-    get formatCallback(): ((this: Datetime_global, dt: Datetime_global, element: ClockTime) => string | unknown) | undefined {
+    get formatCallback(): customFormatter | undefined {
         return this.#callback;
     }
 }
@@ -174,7 +175,7 @@ export class ClockTime extends DT_HTML_Formatter {
      */
     updateTime(): void {
         const dateString: string | null = this.getAttribute('datetime');
-        const timezone: string = this.getAttribute('timezone') ?? 'UTC';
+        const format: string = this.getAttribute('format') ?? Datetime_global.FORMAT_DATETIME_GLOBALV3;
         const date: Date = new Date(String(dateString));
         try {
             // @ts-ignore
@@ -182,7 +183,7 @@ export class ClockTime extends DT_HTML_Formatter {
                 // noinspection ExceptionCaughtLocallyJS
                 throw new RangeError('Invalid date');
             }
-            this.textContent = this.formatDT();
+            this.textContent = this.formatDT(zdt => zdt.format(format));
         } catch (error) {
             if (error instanceof RangeError || (error as Error).name === 'RangeError') {
                 // Display the stringified Date object on RangeError
@@ -205,7 +206,7 @@ export class ClockTime extends DT_HTML_Formatter {
  * Example usage:
  *   <relative-time datetime="2025-06-12T12:00:00Z"></relative-time>
  */
-export class RelativeTime extends TimeElement {
+export class RelativeTime extends DT_HTML_Formatter {
     /**
      * @private
      * @type {null|number}
@@ -279,7 +280,7 @@ export class RelativeTime extends TimeElement {
                 // noinspection ExceptionCaughtLocallyJS
                 throw new RangeError('Invalid date');
             }
-            this.textContent = this.getRelativeTime(date);
+            this.textContent = this.formatDT(zdt => this.getRelativeTime(zdt.toDate()));
         } catch (error) {
             console.error('Error in relative-time element:', error);
             this.textContent = 'Invalid date';
