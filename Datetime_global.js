@@ -1633,3 +1633,6 @@ export function overflowDatetime_global(zonedDateTime, overflow_overwrite) {
 export function dateAsISOString(date) {
     return (new Date(date)).toISOString();
 }
+Datetime_global.hostLocalTimezone = function () {
+    return Temporal.Now.timeZoneId();
+};

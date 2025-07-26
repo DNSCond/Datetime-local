@@ -55,6 +55,9 @@ export class TimeElement extends HTMLElement {
         else if (newValue === undefined) {
             throw new TypeError('undefined is not a timezone');
         }
+        else if (newValue === 'local') {
+            this.setAttribute('timezone', Datetime_global.hostLocalTimezone());
+        }
         else {
             // if the timezone is invalid an error is thrown, do not catch it, It's for the one doing the assignment.
             (new Datetime_global(Date.now(), newValue));
@@ -71,19 +74,28 @@ export class TimeElement extends HTMLElement {
      * gets a `Datetime_global` representing the `datetime` attribute or null. throws when the `timezone` is invalid.
      */
     get datetime_global() {
-        const datetime = this.getAttribute('datetime'), timezone = this.getAttribute('timezone') ?? 'UTC';
+        // const datetime = this.getAttribute('datetime'),
+        //     timezone = this.getAttribute('timezone') ??
+        //         (this.hasAttribute('local') ?
+        //             Datetime_global.hostLocalTimezone() : 'UTC');
+        // if (datetime === null) return null;
+        // return new Datetime_global(datetime, (timezone === 'local' ? Datetime_global.hostLocalTimezone() : timezone));
+        const datetime = this.getAttribute('datetime');
+        const timezone = this.getAttribute('timezone');
         if (datetime === null)
             return null;
-        return new Datetime_global(datetime, timezone);
+        if (timezone === 'local') {
+            return new Datetime_global(datetime, Datetime_global.hostLocalTimezone());
+        }
+        else {
+            return new Datetime_global(datetime, timezone ?? 'UTC');
+        }
     }
     /**
      * gets a `Temporal.ZonedDateTime` representing the `datetime` attribute or null. throws when the `timezone` is invalid.
      */
     get zonedDateTime() {
-        const datetime = this.getAttribute('datetime'), timezone = this.getAttribute('timezone') ?? 'UTC';
-        if (datetime === null)
-            return null;
-        return new Datetime_global(datetime, timezone).toTemporalZonedDateTime();
+        return this.datetime_global?.toTemporalZonedDateTime() ?? null;
     }
 }
 /**
@@ -156,14 +168,12 @@ export class ClockTime extends DT_HTML_Formatter {
     /**
      * Called when an observed attribute changes.
      * @param {string} _name - The name of the attribute.
-     * @param {string|null} oldValue - The old value of the attribute.
-     * @param {string|null} newValue - The new value of the attribute.
+     * @param {string|null} _oldValue - The old value of the attribute.
+     * @param {string|null} _newValue - The new value of the attribute.
      * @returns {void}
      */
-    attributeChangedCallback(_name, oldValue, newValue) {
-        if (oldValue !== newValue) {
-            this.updateTime();
-        }
+    attributeChangedCallback(_name, _oldValue, _newValue) {
+        this.updateTime();
     }
     /**
      * Updates the displayed time based on current attributes.
@@ -173,11 +183,6 @@ export class ClockTime extends DT_HTML_Formatter {
     updateTime() {
         const format = this.getAttribute('format') ?? Datetime_global.FORMAT_DATETIME_GLOBALV3;
         try {
-            // @ts-ignore
-            if (isNaN(date)) {
-                // noinspection ExceptionCaughtLocallyJS
-                throw new RangeError('Invalid date');
-            }
             this.textContent = this.formatDT(zdt => zdt.format(format));
         }
         catch (error) {
@@ -223,7 +228,7 @@ export class RelativeTime extends DT_HTML_Formatter {
      */
     connectedCallback() {
         this.updateTime();
-        // Update every minute to keep relative time current
+        // Update every second to keep relative time current
         this._timer = setInterval(() => this.updateTime(), 1000);
     }
     /**
@@ -239,15 +244,13 @@ export class RelativeTime extends DT_HTML_Formatter {
     }
     /**
      * Called when an observed attribute changes.
-     * @param {string} _name - The name of the attribute.
-     * @param {string|null} oldValue - The old value of the attribute.
-     * @param {string|null} newValue - The new value of the attribute.
+     * @param _name - The name of the attribute.
+     * @param _oldValue
+     * @param _newValue
      * @returns {void}
      */
-    attributeChangedCallback(_name, oldValue, newValue) {
-        if (oldValue !== newValue) {
-            this.updateTime();
-        }
+    attributeChangedCallback(_name, _oldValue, _newValue) {
+        this.updateTime();
     }
     /**
      * Updates the displayed relative time based on the current "datetime" attribute.

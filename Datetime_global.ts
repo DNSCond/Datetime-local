@@ -743,6 +743,8 @@ export interface Datetime_global_constructor {
     prototype: Datetime_global;
     [Symbol.toStringTag]: string;
 
+    hostLocalTimezone(): string;
+
     /**
      * Constructs a Datetime_global instance or returns a string representation.
      * @param from - Input to initialize the date-time. Supports:
@@ -2700,3 +2702,7 @@ export function overflowDatetime_global(
 export function dateAsISOString(date: Date | number): string {
     return (new Date(date)).toISOString();
 }
+
+Datetime_global.hostLocalTimezone = function (): string {
+    return Temporal.Now.timeZoneId();
+};
