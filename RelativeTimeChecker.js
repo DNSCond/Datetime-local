@@ -1,5 +1,6 @@
 import { Temporal } from "temporal-polyfill";
 import { dateAsISOString, Datetime_global } from "./Datetime_global.js";
+// TimeElement, DT_HTML_Formatter, ClockTime, and RelativeTime
 /**
  * for inheritance only
  */
@@ -67,13 +68,55 @@ export class TimeElement extends HTMLElement {
         return this.getAttribute('timezone');
     }
     /**
-     * gets a `Datetime_global` representing the `datetime` attribute or null. throws when the `timezone` is invalid
+     * gets a `Datetime_global` representing the `datetime` attribute or null. throws when the `timezone` is invalid.
      */
-    get datetimeGlobal() {
+    get datetime_global() {
         const datetime = this.getAttribute('datetime'), timezone = this.getAttribute('timezone') ?? 'UTC';
         if (datetime === null)
             return null;
         return new Datetime_global(datetime, timezone);
+    }
+    /**
+     * gets a `Temporal.ZonedDateTime` representing the `datetime` attribute or null. throws when the `timezone` is invalid.
+     */
+    get zonedDateTime() {
+        const datetime = this.getAttribute('datetime'), timezone = this.getAttribute('timezone') ?? 'UTC';
+        if (datetime === null)
+            return null;
+        return new Datetime_global(datetime, timezone).toTemporalZonedDateTime();
+    }
+}
+/**
+ * for inheritance only
+ */
+export class DT_HTML_Formatter extends TimeElement {
+    #callback = undefined;
+    formatDT(defaultFormatter) {
+        const zdt = this.datetime_global;
+        if (zdt === null)
+            return "Invalid Date";
+        const callback = this.#callback;
+        if (callback === undefined)
+            return defaultFormatter.call(zdt, zdt, this);
+        const result = callback.call(zdt, zdt, this);
+        if (typeof result === 'string')
+            return result;
+        else {
+            throw new TypeError('the callback did not return a string');
+        }
+    }
+    set formatCallback(value) {
+        if (value === undefined)
+            this.#callback = undefined;
+        else if (typeof value === 'function') {
+            this.#callback = value;
+        }
+        else {
+            throw new TypeError('your provided formatCallback wasnt a function.');
+        }
+    }
+    get formatCallback() {
+        return this.#callback;
     }
 }
 /**
@@ -87,7 +130,7 @@ export class TimeElement extends HTMLElement {
  * Example usage:
  *   <clock-time datetime="2025-06-12T12:00:00Z" format="Y-m-d H:i" timezone="UTC"></clock-time>
  */
-export class ClockTime extends TimeElement {
+export class ClockTime extends DT_HTML_Formatter {
     /**
      * Returns the list of attributes to observe for changes.
      * @returns {string[]}
@@ -128,28 +171,18 @@ export class ClockTime extends TimeElement {
      * @returns {void}
      */
     updateTime() {
-        const dateString = this.getAttribute('datetime');
         const format = this.getAttribute('format') ?? Datetime_global.FORMAT_DATETIME_GLOBALV3;
-        const timezone = this.getAttribute('timezone') ?? 'UTC';
-        const date = new Date(String(dateString));
         try {
             // @ts-ignore
             if (isNaN(date)) {
                 // noinspection ExceptionCaughtLocallyJS
                 throw new RangeError('Invalid date');
             }
-            this.textContent = (new Datetime_global(date, timezone)).format(format);
+            this.textContent = this.formatDT(zdt => zdt.format(format));
         }
         catch (error) {
-            if (error instanceof RangeError || error.name === 'RangeError') {
-                // Display the stringified Date object on RangeError
-                this.textContent = date.toString();
-            }
-            else {
-                // For other errors, you might want to handle them differently
-                console.error('Error in clock-time element:', error);
-                this.textContent = 'Error displaying time';
-            }
+            this.textContent = "Invalid Date";
+            throw error;
         }
     }
 }
@@ -162,7 +195,7 @@ export class ClockTime extends TimeElement {
  * Example usage:
  *   <relative-time datetime="2025-06-12T12:00:00Z"></relative-time>
  */
-export class RelativeTime extends TimeElement {
+export class RelativeTime extends DT_HTML_Formatter {
     /**
      * @private
      * @type {null|number}
@@ -222,15 +255,8 @@ export class RelativeTime extends TimeElement {
      * @returns {void}
      */
     updateTime() {
-        const dateString = this.getAttribute('datetime');
-        const date = new Date(String(dateString));
         try {
-            // @ts-ignore
-            if (isNaN(date)) {
-                // noinspection ExceptionCaughtLocallyJS
-                throw new RangeError('Invalid date');
-            }
-            this.textContent = this.getRelativeTime(date);
+            this.textContent = this.formatDT(zdt => this.getRelativeTime(zdt.toDate()));
         }
         catch (error) {
             console.error('Error in relative-time element:', error);

@@ -174,9 +174,7 @@ export class ClockTime extends DT_HTML_Formatter {
      * @returns {void}
      */
     updateTime(): void {
-        const dateString: string | null = this.getAttribute('datetime');
         const format: string = this.getAttribute('format') ?? Datetime_global.FORMAT_DATETIME_GLOBALV3;
-        const date: Date = new Date(String(dateString));
         try {
             // @ts-ignore
             if (isNaN(date)) {
@@ -185,14 +183,8 @@ export class ClockTime extends DT_HTML_Formatter {
             }
             this.textContent = this.formatDT(zdt => zdt.format(format));
         } catch (error) {
-            if (error instanceof RangeError || (error as Error).name === 'RangeError') {
-                // Display the stringified Date object on RangeError
-                this.textContent = date.toString();
-            } else {
-                // For other errors, you might want to handle them differently
-                console.error('Error in clock-time element:', error);
-                this.textContent = 'Error displaying time';
-            }
+            this.textContent = "Invalid Date";
+            throw error;
         }
     }
 }
@@ -272,14 +264,7 @@ export class RelativeTime extends DT_HTML_Formatter {
      * @returns {void}
      */
     updateTime(): void {
-        const dateString: string | null = this.getAttribute('datetime');
-        const date: Date = new Date(String(dateString));
         try {
-            // @ts-ignore
-            if (isNaN(date)) {
-                // noinspection ExceptionCaughtLocallyJS
-                throw new RangeError('Invalid date');
-            }
             this.textContent = this.formatDT(zdt => this.getRelativeTime(zdt.toDate()));
         } catch (error) {
             console.error('Error in relative-time element:', error);
