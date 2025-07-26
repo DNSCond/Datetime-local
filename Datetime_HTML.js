@@ -1,12 +1,12 @@
 import { Datetime_global } from "./Datetime_global.js";
 import { Temporal } from "temporal-polyfill";
 import { CallableClass } from "./proxy.js";
-export const Datetime_HTML = CallableClass(class Datetime_HTML extends Datetime_global {
+class Datetime_HTML_Internal extends Datetime_global {
     constructor(from, timezoneId = Temporal.Now.timeZoneId()) {
         super(from, timezoneId);
     }
     static withoutNew(from, timezoneId = Temporal.Now.timeZoneId()) {
-        return (new Datetime_HTML(from, timezoneId)).toHTMLTime();
+        return (new Datetime_HTML_Internal(from, timezoneId)).toHTMLTime();
     }
     /**
      * Returns the date-time as an ISO 8601 string in UTC (e.g., "2025-04-18T12:34:56.789Z").
@@ -55,7 +55,8 @@ export const Datetime_HTML = CallableClass(class Datetime_HTML extends Datetime_
         return time;
     }
     ;
-});
+}
+export const Datetime_HTML = CallableClass(Datetime_HTML_Internal);
 export function createTimeElement(date, classArray = []) {
     const time = document.createElement('time');
     if (typeof classArray === 'string') {

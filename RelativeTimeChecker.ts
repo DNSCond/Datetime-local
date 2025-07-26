@@ -1,6 +1,122 @@
-import {Datetime_global} from "./Datetime_global.js";
+import {Temporal} from "temporal-polyfill";
+import {dateAsISOString, Datetime_global} from "./Datetime_global.js";
 
-// ClockTime extends HTMLElement, RelativeTime extends HTMLElement
+// TimeElement, DT_HTML_Formatter, ClockTime, and RelativeTime
+
+/**
+ * for inheritance only
+ */
+export abstract class TimeElement extends HTMLElement {
+    /**
+     * sets the `datetime` and possibly `timezone` attribute to the new timestamp of the param.
+     * @param newValue a Date, Temporal.ZonedDateTime, Datetime_global, string, number, or bigint.
+     */
+    set dateTime(newValue: unknown) {
+        if (newValue === null) {
+            this.removeAttribute('datetime');
+        } else if (newValue instanceof Temporal.ZonedDateTime) {
+            this.setAttribute('datetime', dateAsISOString(newValue.epochMilliseconds));
+            this.setAttribute('timezone', newValue.timeZoneId);
+        } else if (newValue instanceof Datetime_global) {
+            this.setAttribute('datetime', newValue.toISOString());
+        } else if (newValue instanceof Date) {
+            this.setAttribute('datetime', newValue.toISOString());
+        } else if (typeof newValue === 'bigint') {
+            // Temporal.Instant is the same as Temporal.Instant.fromEpochNanoseconds.
+            const instant = new Temporal.Instant(newValue);
+            this.setAttribute('datetime', (new Date(instant.epochMilliseconds)).toISOString());
+        } else if (typeof newValue === 'string' || typeof newValue === 'number') {
+            // toISOString throws on invalid dates.
+            this.setAttribute('datetime', (new Date(newValue)).toISOString());
+        } else {
+            throw new TypeError('dateTime must be set using a Date, Temporal.ZonedDateTime, Datetime_global, string, number, or bigint');
+        }
+    }
+
+    /**
+     * a Date representing the `datetime` attribute or null.
+     */
+    get dateTime(): Date | null {
+        const date = this.getAttribute('datetime');
+        if (date === null) return null;
+        return new Date(date);
+    }
+
+    /**
+     * sets the `timezone` attribute to the new timezone of the param.
+     */
+    set timezone(newValue: unknown) {
+        if (newValue === null) {
+            this.removeAttribute('timezone');
+        } else if (newValue === undefined) {
+            throw new TypeError('undefined is not a timezone');
+        } else {
+            // if the timezone is invalid an error is thrown, do not catch it, It's for the one doing the assignment.
+            (new Datetime_global(Date.now(), newValue as string));
+            this.setAttribute('timezone', newValue as string);
+        }
+    }
+
+    /**
+     * gets the `timezone` attribute of this element.
+     */
+    get timezone(): string | null {
+        return this.getAttribute('timezone');
+    }
+
+    /**
+     * gets a `Datetime_global` representing the `datetime` attribute or null. throws when the `timezone` is invalid.
+     */
+    get datetime_global(): Datetime_global | null {
+        const datetime = this.getAttribute('datetime'),
+            timezone = this.getAttribute('timezone') ?? 'UTC';
+        if (datetime === null) return null;
+        return new Datetime_global(datetime, timezone);
+    }
+
+    /**
+     * gets a `Temporal.ZonedDateTime` representing the `datetime` attribute or null. throws when the `timezone` is invalid.
+     */
+    get zonedDateTime(): Temporal.ZonedDateTime | null {
+        const datetime = this.getAttribute('datetime'),
+            timezone = this.getAttribute('timezone') ?? 'UTC';
+        if (datetime === null) return null;
+        return new Datetime_global(datetime, timezone).toTemporalZonedDateTime();
+    }
+}
+
+/**
+ * for inheritance only
+ */
+export abstract class DT_HTML_Formatter extends TimeElement {
+    #callback: ((this: Datetime_global, dt: Datetime_global, element: ClockTime) => string | unknown) | undefined = undefined;
+
+    formatDT(): string {
+        const zdt = this.datetime_global;
+        if (zdt === null) return "Invalid Date";
+        const callback = this.#callback;
+        const format: string = this.getAttribute('format') ?? Datetime_global.FORMAT_DATETIME_GLOBALV3;
+        if (callback === undefined) return zdt.format(format);
+        const result = callback.call(zdt, zdt, this as unknown as ClockTime);
+        if (typeof result === 'string') return result; else {
+            throw new TypeError('the callback did not return a string');
+        }
+    }
+
+    set formatCallback(value: unknown) {
+        if (value === undefined) this.#callback = undefined;
+        else if (typeof value === 'function') {
+            this.#callback = value as (this: Datetime_global, dt: Datetime_global, element: ClockTime) => string | unknown;
+        } else {
+            throw new TypeError('your provided formatCallback wasnt a function.');
+        }
+    }
+
+    get formatCallback(): ((this: Datetime_global, dt: Datetime_global, element: ClockTime) => string | unknown) | undefined {
+        return this.#callback;
+    }
+}
+
 /**
  * A custom HTML element that displays a formatted absolute time.
  *
@@ -12,7 +128,7 @@ import {Datetime_global} from "./Datetime_global.js";
  * Example usage:
  *   <clock-time datetime="2025-06-12T12:00:00Z" format="Y-m-d H:i" timezone="UTC"></clock-time>
  */
-class ClockTime extends HTMLElement {
+export class ClockTime extends DT_HTML_Formatter {
     /**
      * Returns the list of attributes to observe for changes.
      * @returns {string[]}
@@ -58,7 +174,6 @@ class ClockTime extends HTMLElement {
      */
     updateTime(): void {
         const dateString: string | null = this.getAttribute('datetime');
-        const format: string = this.getAttribute('format') ?? Datetime_global.FORMAT_DATETIME_GLOBALV3;
         const timezone: string = this.getAttribute('timezone') ?? 'UTC';
         const date: Date = new Date(String(dateString));
         try {
@@ -67,7 +182,7 @@ class ClockTime extends HTMLElement {
                 // noinspection ExceptionCaughtLocallyJS
                 throw new RangeError('Invalid date');
             }
-            this.textContent = (new Datetime_global(date, timezone)).format(format);
+            this.textContent = this.formatDT();
         } catch (error) {
             if (error instanceof RangeError || (error as Error).name === 'RangeError') {
                 // Display the stringified Date object on RangeError
@@ -90,7 +205,7 @@ class ClockTime extends HTMLElement {
  * Example usage:
  *   <relative-time datetime="2025-06-12T12:00:00Z"></relative-time>
  */
-class RelativeTime extends HTMLElement {
+export class RelativeTime extends TimeElement {
     /**
      * @private
      * @type {null|number}

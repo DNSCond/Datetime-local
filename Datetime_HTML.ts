@@ -2,13 +2,13 @@ import {constructorInput, Datetime_global} from "./Datetime_global.js";
 import {Temporal} from "temporal-polyfill";
 import {CallableClass} from "./proxy.js";
 
-export const Datetime_HTML = CallableClass(class Datetime_HTML extends Datetime_global {
+class Datetime_HTML_Internal extends Datetime_global {
     constructor(from?: constructorInput, timezoneId: Temporal.TimeZoneLike | string = Temporal.Now.timeZoneId()) {
         super(from, timezoneId);
     }
 
     static withoutNew(from?: constructorInput, timezoneId: Temporal.TimeZoneLike | string = Temporal.Now.timeZoneId()): HTMLTimeElement {
-        return (new Datetime_HTML(from, timezoneId)).toHTMLTime();
+        return (new Datetime_HTML_Internal(from, timezoneId)).toHTMLTime();
     }
 
     /**
@@ -58,7 +58,10 @@ export const Datetime_HTML = CallableClass(class Datetime_HTML extends Datetime_
         time.dateTime = this.toISOString();
         return time;
     };
-});
+}
+
+export const Datetime_HTML = CallableClass(Datetime_HTML_Internal);
+export type Datetime_HTML = Datetime_HTML_Internal;
 
 export function createTimeElement(date?: Date, classArray: string | string[] = []): HTMLTimeElement {
     const time: HTMLTimeElement = document.createElement('time');

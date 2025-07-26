@@ -1,5 +1,81 @@
-import { Datetime_global } from "./Datetime_global.js";
-// ClockTime extends HTMLElement, RelativeTime extends HTMLElement
+import { Temporal } from "temporal-polyfill";
+import { dateAsISOString, Datetime_global } from "./Datetime_global.js";
+/**
+ * for inheritance only
+ */
+export class TimeElement extends HTMLElement {
+    /**
+     * sets the `datetime` and possibly `timezone` attribute to the new timestamp of the param.
+     * @param newValue a Date, Temporal.ZonedDateTime, Datetime_global, string, number, or bigint.
+     */
+    set dateTime(newValue) {
+        if (newValue === null) {
+            this.removeAttribute('datetime');
+        }
+        else if (newValue instanceof Temporal.ZonedDateTime) {
+            this.setAttribute('datetime', dateAsISOString(newValue.epochMilliseconds));
+            this.setAttribute('timezone', newValue.timeZoneId);
+        }
+        else if (newValue instanceof Datetime_global) {
+            this.setAttribute('datetime', newValue.toISOString());
+        }
+        else if (newValue instanceof Date) {
+            this.setAttribute('datetime', newValue.toISOString());
+        }
+        else if (typeof newValue === 'bigint') {
+            // Temporal.Instant is the same as Temporal.Instant.fromEpochNanoseconds.
+            const instant = new Temporal.Instant(newValue);
+            this.setAttribute('datetime', (new Date(instant.epochMilliseconds)).toISOString());
+        }
+        else if (typeof newValue === 'string' || typeof newValue === 'number') {
+            // toISOString throws on invalid dates.
+            this.setAttribute('datetime', (new Date(newValue)).toISOString());
+        }
+        else {
+            throw new TypeError('dateTime must be set using a Date, Temporal.ZonedDateTime, Datetime_global, string, number, or bigint');
+        }
+    }
+    /**
+     * a Date representing the `datetime` attribute or null.
+     */
+    get dateTime() {
+        const date = this.getAttribute('datetime');
+        if (date === null)
+            return null;
+        return new Date(date);
+    }
+    /**
+     * sets the `timezone` attribute to the new timezone of the param.
+     */
+    set timezone(newValue) {
+        if (newValue === null) {
+            this.removeAttribute('timezone');
+        }
+        else if (newValue === undefined) {
+            throw new TypeError('undefined is not a timezone');
+        }
+        else {
+            // if the timezone is invalid an error is thrown, do not catch it, It's for the one doing the assignment.
+            (new Datetime_global(Date.now(), newValue));
+            this.setAttribute('timezone', newValue);
+        }
+    }
+    /**
+     * gets the `timezone` attribute of this element.
+     */
+    get timezone() {
+        return this.getAttribute('timezone');
+    }
+    /**
+     * gets a `Datetime_global` representing the `datetime` attribute or null. throws when the `timezone` is invalid
+     */
+    get datetimeGlobal() {
+        const datetime = this.getAttribute('datetime'), timezone = this.getAttribute('timezone') ?? 'UTC';
+        if (datetime === null)
+            return null;
+        return new Datetime_global(datetime, timezone);
+    }
+}
 /**
  * A custom HTML element that displays a formatted absolute time.
  *
@@ -11,7 +87,7 @@ import { Datetime_global } from "./Datetime_global.js";
  * Example usage:
  *   <clock-time datetime="2025-06-12T12:00:00Z" format="Y-m-d H:i" timezone="UTC"></clock-time>
  */
-class ClockTime extends HTMLElement {
+export class ClockTime extends TimeElement {
     /**
      * Returns the list of attributes to observe for changes.
      * @returns {string[]}
@@ -86,7 +162,7 @@ class ClockTime extends HTMLElement {
  * Example usage:
  *   <relative-time datetime="2025-06-12T12:00:00Z"></relative-time>
  */
-class RelativeTime extends HTMLElement {
+export class RelativeTime extends TimeElement {
     /**
      * @private
      * @type {null|number}

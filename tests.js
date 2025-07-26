@@ -2,6 +2,7 @@ import {Datetime_global} from "./Datetime_global.js";
 // change "./Datetime_global" to the actual path
 
 // get the current time
-const now = new Datetime_global('2025-07-21T11:53:16Z', 'UTC');
-// now.setHours(now.hour-1)
-// console.log(now.format(Datetime_global.FORMAT_B + ' (e)'));
+const now = new Datetime_global('2025-07-21T23:59:00', 'Europe/Amsterdam');
+console.log(now.toString(), now.minutesAfterMidnight);
+now.minutesAfterMidnight = 1440;
+console.log(now.toString(), now.minutesAfterMidnight);

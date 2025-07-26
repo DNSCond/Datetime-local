@@ -70,7 +70,6 @@ export const Datetime_global = function (from = undefined, timezoneId = Temporal
         }
     }
     const value = from instanceof Temporal.ZonedDateTime ? from : new Temporal.ZonedDateTime(BigInt(timestamp) * (isBigInt ? 1n : 1000000n), timezoneId);
-    //if(new.target)this.time=time;else{return Object.assign({time},Datetime_global.prototype).toString()}
     const self = new.target ? this : Object.create(Datetime_global.prototype);
     const [writable, enumerable, configurable] = [true, true, true];
     Object.defineProperties(self, {
@@ -123,11 +122,21 @@ export const Datetime_global = function (from = undefined, timezoneId = Temporal
             get() {
                 return this.time.epochNanoseconds;
             }, enumerable, configurable,
+        }, minutesAfterMidnight: {
+            get() {
+                // time: Temporal.ZonedDateTime
+                const { time } = this;
+                return time.startOfDay().until(time, {
+                    smallestUnit: 'minutes',
+                    largestUnit: 'minutes',
+                }).minutes;
+            }, set(value) {
+                this.setHours(0, Math.trunc(value));
+            }, enumerable, configurable,
         },
     });
-    if (!new.target) {
+    if (!new.target)
         return self.toString();
-    }
 };
 Datetime_global.compare = function (zonedDatetime1, zonedDatetime2) {
     zonedDatetime1 = new Datetime_global(zonedDatetime1, 'UTC');
@@ -1614,10 +1623,13 @@ export function overflowDatetime_global(zonedDateTime, overflow_overwrite) {
         microseconds: try_time.microsecond - self_time.microsecond,
         nanoseconds: try_time.nanosecond - self_time.nanosecond,
     };
-    // Create a Temporal.Duration to handle the overflow
-    const temporalDuration = new Temporal.Duration(duration.years, duration.months, 0, // weeks, not used
-    duration.days, duration.hours, duration.minutes, duration.seconds, duration.milliseconds, duration.microseconds, duration.nanoseconds);
-    // this works, shut up (grok says so)
-    // Add the duration to the original ZonedDateTime to handle overflows
-    return self_time.add(temporalDuration);
+    let zoneddatetime = self_time;
+    for (const unit of ['years', 'months', 'days', 'hours', 'minutes', 'seconds', 'milliseconds', 'microseconds', 'nanoseconds']) {
+        // @ts-expect-error
+        zoneddatetime = zoneddatetime.add(Temporal.Duration.from({ [unit]: duration[unit] }));
+    }
+    return zoneddatetime;
+}
+export function dateAsISOString(date) {
+    return (new Date(date)).toISOString();
 }
