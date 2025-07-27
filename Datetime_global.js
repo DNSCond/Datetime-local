@@ -1,6 +1,9 @@
 import { Temporal } from 'temporal-polyfill';
 import { ZDTDuration } from "./ZDTDuration.js";
+// npm: https://www.npmjs.com/package/datetime_global
+// github: https://github.com/DNSCond/Datetime-local
 "use strict"; // [^\x00-\x7F]
+const [writable, enumerable, configurable] = [true, true, true];
 /**
  * Constructs a Datetime_global instance or returns a string representation.
  * @param from - Input to initialize the date-time. Supports:
@@ -71,7 +74,6 @@ export const Datetime_global = function (from = undefined, timezoneId = Temporal
     }
     const value = from instanceof Temporal.ZonedDateTime ? from : new Temporal.ZonedDateTime(BigInt(timestamp) * (isBigInt ? 1n : 1000000n), timezoneId);
     const self = new.target ? this : Object.create(Datetime_global.prototype);
-    const [writable, enumerable, configurable] = [true, true, true];
     Object.defineProperties(self, {
         time: { value, writable, enumerable, configurable, },
         year: {
@@ -121,23 +123,67 @@ export const Datetime_global = function (from = undefined, timezoneId = Temporal
         }, epochNanoseconds: {
             get() {
                 return this.time.epochNanoseconds;
-            }, enumerable, configurable,
-        }, minutesAfterMidnight: {
-            get() {
-                // time: Temporal.ZonedDateTime
-                const { time } = this;
-                return time.startOfDay().until(time, {
-                    smallestUnit: 'minutes',
-                    largestUnit: 'minutes',
-                }).minutes;
             }, set(value) {
-                this.setHours(0, Math.trunc(value));
+                this.time = new Temporal.ZonedDateTime(BigInt(value), this.timezoneId);
             }, enumerable, configurable,
         },
     });
     if (!new.target)
         return self.toString();
 };
+Object.defineProperties(Datetime_global.prototype, {
+    minutesAfterMidnight: {
+        get() {
+            // time: Temporal.ZonedDateTime
+            const { time } = this;
+            return time.startOfDay().until(time, {
+                smallestUnit: 'minutes',
+                largestUnit: 'minutes',
+            }).minutes;
+        }, set(value) {
+            this.setHours(0, Math.trunc(value));
+        }, enumerable, configurable,
+    },
+    timezoneId: {
+        get() {
+            return this.getTimezoneId();
+        }, enumerable, configurable,
+    },
+    date: {
+        get() {
+            return this.toDate();
+        }, set(value) {
+            if (value instanceof Date) {
+                const instant = Temporal.Instant.fromEpochMilliseconds(value);
+                this.time = new Temporal.ZonedDateTime(instant.epochNanoseconds, this.getTimezoneId());
+            }
+            else {
+                throw new TypeError('date must be set using a Date.');
+            }
+        }, enumerable, configurable,
+    },
+    americanFormat: {
+        get() {
+            const pad = function (n) {
+                return String(n).padStart(2, '0');
+            }, { date } = this;
+            const MM = pad(date.getMonth() + 1);
+            const DD = pad(date.getDate());
+            const YYYY = date.getFullYear();
+            const hh = pad(date.getHours());
+            const mm = pad(date.getMinutes());
+            const ss = pad(date.getSeconds());
+            return `${MM}/${DD}/${YYYY} ${hh}:${mm}:${ss}`;
+        }, set(value) {
+            const regex = /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})$/;
+            const match = regex.exec(value);
+            if (!match)
+                throw new TypeError('invalid americanFormat');
+            const [, MM, DD, YYYY, hh, mm, ss] = match.map(Number);
+            this.date = new Date(YYYY, MM - 1, DD, hh, mm, ss);
+        }, enumerable, configurable,
+    }
+});
 Datetime_global.compare = function (zonedDatetime1, zonedDatetime2) {
     zonedDatetime1 = new Datetime_global(zonedDatetime1, 'UTC');
     zonedDatetime2 = new Datetime_global(zonedDatetime2, 'UTC');
