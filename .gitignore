@@ -2,3 +2,5 @@ node_modules
 note.js
 browsertest.html
 *.txt
+assignProperties.ts
+assignProperties.js

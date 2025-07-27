@@ -23,12 +23,17 @@ export class TimeElement extends HTMLElement {
         else if (newValue instanceof Date) {
             this.setAttribute('datetime', newValue.toISOString());
         }
+        else if (newValue instanceof Temporal.Instant) {
+            this.setAttribute('datetime', new Date(newValue.epochMilliseconds).toISOString());
+        }
         else if (typeof newValue === 'bigint') {
+            console.warn('please do not assign dateTime with a bigint');
             // Temporal.Instant is the same as Temporal.Instant.fromEpochNanoseconds.
             const instant = new Temporal.Instant(newValue);
             this.setAttribute('datetime', (new Date(instant.epochMilliseconds)).toISOString());
         }
         else if (typeof newValue === 'string' || typeof newValue === 'number') {
+            console.warn('please do not assign dateTime with a number or string');
             // toISOString throws on invalid dates.
             this.setAttribute('datetime', (new Date(newValue)).toISOString());
         }
@@ -74,12 +79,6 @@ export class TimeElement extends HTMLElement {
      * gets a `Datetime_global` representing the `datetime` attribute or null. throws when the `timezone` is invalid.
      */
     get datetime_global() {
-        // const datetime = this.getAttribute('datetime'),
-        //     timezone = this.getAttribute('timezone') ??
-        //         (this.hasAttribute('local') ?
-        //             Datetime_global.hostLocalTimezone() : 'UTC');
-        // if (datetime === null) return null;
-        // return new Datetime_global(datetime, (timezone === 'local' ? Datetime_global.hostLocalTimezone() : timezone));
         const datetime = this.getAttribute('datetime');
         const timezone = this.getAttribute('timezone');
         if (datetime === null)
