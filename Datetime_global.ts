@@ -1100,7 +1100,7 @@ Object.defineProperties(Datetime_global.prototype, {
     },
     timezoneId: {
         get(this: Datetime_global): string {
-            return this.getTimezoneId();
+            return this.time.timeZoneId;
         }, enumerable, configurable,
     },
     date: {
@@ -1115,31 +1115,6 @@ Object.defineProperties(Datetime_global.prototype, {
             }
         }, enumerable, configurable,
     },
-    americanFormat: {
-        get(this: Datetime_global): string {
-            const pad = function (n: number): string {
-                return String(n).padStart(2, '0');
-            }, {date} = this;
-
-            const MM = pad(date.getMonth() + 1);
-            const DD = pad(date.getDate());
-            const YYYY = date.getFullYear();
-            const hh = pad(date.getHours());
-            const mm = pad(date.getMinutes());
-            const ss = pad(date.getSeconds());
-
-            return `${MM}/${DD}/${YYYY} ${hh}:${mm}:${ss}`;
-
-        }, set(this: Datetime_global, value: string): void {
-            const regex = /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})$/;
-            const match = regex.exec(value);
-
-            if (!match) throw new TypeError('invalid americanFormat')
-
-            const [, MM, DD, YYYY, hh, mm, ss] = match.map(Number);
-            this.date = new Date(YYYY, MM - 1, DD, hh, mm, ss);
-        }, enumerable, configurable,
-    }
 });
 
 type overflow_overwrite = {
@@ -1608,8 +1583,7 @@ Datetime_global.prototype.getUTCDate = function (this: Datetime_global): number 
  * console.log(dt.getHours()); // 15
  */
 Datetime_global.prototype.getUTCHours = function (this: Datetime_global): number {
-    const date: Date = new Date(this.time.epochMilliseconds);
-    return date.getUTCHours();
+    return (new Date(this.time.epochMilliseconds)).getUTCHours();
 };
 
 /**
