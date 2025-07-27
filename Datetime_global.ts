@@ -4,7 +4,7 @@ import {ZDTDuration} from "./ZDTDuration.js";
 "use strict"; // [^\x00-\x7F]
 
 // npm: https://www.npmjs.com/package/datetime_global
-// github: https://github.com/Qin2007/Datetime-local
+// github: https://github.com/DNSCond/Datetime-local
 
 /**
  * things that go into the constructor
