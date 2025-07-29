@@ -39,7 +39,6 @@ export type Datetime_global = {
     get timezoneId(): string, get date(): Date,
     set date(value: Date | unknown),
 
-
     /**
      * Returns a string representation of the date-time, including timezone offset and ID.
      * Format (php): "D M d Y H:i:s \U\T\CO (e)" (e.g., "Fri Apr 18 2025 00:00:00 UTC+0000 (UTC)").
