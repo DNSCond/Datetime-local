@@ -23,11 +23,6 @@ export abstract class TimeElement extends HTMLElement {
             this.setAttribute('datetime', newValue.toISOString());
         } else if (newValue instanceof Temporal.Instant) {
             this.setAttribute('datetime', new Date(newValue.epochMilliseconds).toISOString());
-        } else if (typeof newValue === 'bigint') {
-            console.warn('please do not assign dateTime with a bigint');
-            // Temporal.Instant is the same as Temporal.Instant.fromEpochNanoseconds.
-            const instant = new Temporal.Instant(newValue);
-            this.setAttribute('datetime', (new Date(instant.epochMilliseconds)).toISOString());
         } else if (typeof newValue === 'string' || typeof newValue === 'number') {
             console.warn('please do not assign dateTime with a number or string');
             // toISOString throws on invalid dates.
@@ -67,7 +62,9 @@ export abstract class TimeElement extends HTMLElement {
      * gets the `timezone` attribute of this element.
      */
     get timezone(): string | null {
-        return this.getAttribute('timezone');
+        const timezone: string | null = this.getAttribute('timezone');
+        if (timezone === 'local') return Datetime_global.hostLocalTimezone();
+        return timezone;
     }
 
     /**
@@ -92,7 +89,7 @@ export abstract class TimeElement extends HTMLElement {
     }
 }
 
-type customFormatter = (this: Datetime_global, dt: Datetime_global, element: DT_HTML_Formatter) => string | unknown;
+type customFormatter = (this: Datetime_global, dt: Datetime_global, element: DT_HTML_Formatter) => string;
 
 /**
  * for inheritance only
@@ -103,9 +100,11 @@ export abstract class DT_HTML_Formatter extends TimeElement {
     formatDT(defaultFormatter: customFormatter): string {
         const zdt = this.datetime_global;
         if (zdt === null) return "Invalid Date";
-        const callback = this.#callback;
-        if (callback === undefined) return defaultFormatter.call(zdt, zdt, this) as string;
-        const result = callback.call(zdt, zdt, this);
+        const callback: customFormatter | undefined = this.#callback;
+        const result = Function.prototype.call.call(
+            callback ?? defaultFormatter ??
+            (m => String(m)),
+            zdt, zdt, this);
         if (typeof result === 'string') return result; else {
             throw new TypeError('the callback did not return a string');
         }

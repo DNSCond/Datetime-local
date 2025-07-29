@@ -1088,7 +1088,6 @@ export const Datetime_global: Datetime_global_constructor = function (
 Object.defineProperties(Datetime_global.prototype, {
     minutesAfterMidnight: {
         get(this: Datetime_global): number {
-            // time: Temporal.ZonedDateTime
             const {time} = this;
             return time.startOfDay().until(time, {
                 smallestUnit: 'minutes',
@@ -1097,22 +1096,20 @@ Object.defineProperties(Datetime_global.prototype, {
         }, set(this: Datetime_global, value: number): void {
             this.setHours(0, Math.trunc(value));
         }, enumerable, configurable,
-    },
-    timezoneId: {
+    }, timezoneId: {
         get(this: Datetime_global): string {
             return this.time.timeZoneId;
+        }, set(this: Datetime_global, value: string): void {
+            this.time = this.toTimezone(value).toTemporalZonedDateTime();
         }, enumerable, configurable,
-    },
-    date: {
+    }, date: {
         get(this: Datetime_global): Date {
             return this.toDate();
         }, set(this: Datetime_global, value: Date | unknown): void {
             if (value instanceof Date) {
                 const instant = Temporal.Instant.fromEpochMilliseconds(value as unknown as number);
                 this.time = new Temporal.ZonedDateTime(instant.epochNanoseconds, this.getTimezoneId());
-            } else {
-                throw new TypeError('date must be set using a Date.');
-            }
+            } else throw new TypeError('date must be set using a Date.');
         }, enumerable, configurable,
     },
 });
@@ -1317,10 +1314,9 @@ Datetime_global.prototype.setTime = function (this: Datetime_global, timestamp: 
  * console.log(dt.toString()); // "Fri Apr 18 2025 00:00:00 UTC+0000 (UTC)"
  */
 Datetime_global.prototype.toString = function (this: Datetime_global): string {
-    const self: Datetime_global = this, pad = function (strx: string | any, number: number = 2): string {
-        return String(strx).padStart(Number(number), '0');
-    }, fullYear = pad(self.time.withCalendar('iso8601').year, 4);
-
+    const self: Datetime_global = this, pad = (n: number, z: number = 2) =>
+            padNumber(n, z).replace(/^\+/, ''),
+        fullYear = pad(self.time.withCalendar('iso8601').year, 4);
     const offset: string = Datetime_global.getUTCOffset(self.getTimezoneOffset()),
         string: string = `${self.getDayName()} ${self.getMonthName()} ${pad(self.getDate())}`,
         time: string = `${pad(self.getHours())}:${pad(self.getMinutes())}:${pad(self.getSeconds())}`;
@@ -1965,8 +1961,9 @@ Datetime_global.prototype.getUTCNanoseconds = Datetime_global.prototype.getNanos
 Datetime_global.getUTCOffset = function (offset: number): string {
     if (isNaN(offset)) return 'UTC+Error';
     const sign: "-" | "+" = offset > 0 ? "-" : "+", absOffset: number = Math.abs(offset);
-    const hours: string = String(Math.trunc(absOffset / 60)).padStart(2, "0");
-    const minutes: string = String(absOffset % 60).padStart(2, "0");
+    const pad = (n: number) => padNumber(n).replace(/^\+/, '');
+    const hours: string = pad(Math.trunc(absOffset / 60));
+    const minutes: string = pad(absOffset % 60);
     return `UTC${sign}${hours}${minutes}`;
 };
 
@@ -2207,9 +2204,8 @@ Datetime_global.prototype.toTimeString = function (this: Datetime_global): strin
 Datetime_global.prototype.format = function (this: Datetime_global, pattern: string): string {
     const string: string = pattern ?? '';
     //(new this.constructor(this, this?.time?.timeZoneId))
-    const pad = function (numberToPad: number, number: number = 2, plusIfPositive: boolean = false): string {
-        return (numberToPad < 0 ? '-' : (plusIfPositive ? '+' : '')) + String(Math.abs(numberToPad)).padStart(Number(number), '0');
-    }, datetime_local: Datetime_global = this.withCalender();
+    const datetime_local: Datetime_global = this.withCalender(),
+        pad = (n: number, z: number = 2) => padNumber(n, z).replace(/^\+/, '');
     const hour24: string = pad(datetime_local.getHours()), dayName: string = datetime_local.getDayName();
     const iso8601: Datetime_global = datetime_local, dayNameFull: string = datetime_local.getFullDayName();
     const dayNumberMonth: string = pad(datetime_local.getDayNumberMonth()),
@@ -2733,3 +2729,19 @@ export function dateAsISOString(date: Date | number): string {
 Datetime_global.hostLocalTimezone = function (): string {
     return Temporal.Now.timeZoneId();
 };
+
+export function padNumber(number: number | bigint, zeros: number = 2): string {
+    number = -(-number);
+    /*if (Number.isNaN(number)) return 'Not a Number';//;//
+    if (number === +Infinity) return 'Positive Infinity';//
+    if (number === -Infinity) return 'Negative Infinity';*/
+    if (Number.isNaN(number)) throw new TypeError('Not A Number is encountered');
+    if (number === +Infinity) throw new TypeError('Positive Infinity is encountered');
+    if (number === -Infinity) throw new TypeError('Negative Infinity is encountered');
+    let negative = false;
+    if (number < 0) {
+        negative = true;
+        number = -number;
+    }
+    return (negative ? '-' : '+') + String(number).padStart(zeros, "0");
+}

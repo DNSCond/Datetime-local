@@ -134,7 +134,6 @@ export const Datetime_global = function (from = undefined, timezoneId = Temporal
 Object.defineProperties(Datetime_global.prototype, {
     minutesAfterMidnight: {
         get() {
-            // time: Temporal.ZonedDateTime
             const { time } = this;
             return time.startOfDay().until(time, {
                 smallestUnit: 'minutes',
@@ -143,13 +142,13 @@ Object.defineProperties(Datetime_global.prototype, {
         }, set(value) {
             this.setHours(0, Math.trunc(value));
         }, enumerable, configurable,
-    },
-    timezoneId: {
+    }, timezoneId: {
         get() {
             return this.time.timeZoneId;
+        }, set(value) {
+            this.time = this.toTimezone(value).toTemporalZonedDateTime();
         }, enumerable, configurable,
-    },
-    date: {
+    }, date: {
         get() {
             return this.toDate();
         }, set(value) {
@@ -157,9 +156,8 @@ Object.defineProperties(Datetime_global.prototype, {
                 const instant = Temporal.Instant.fromEpochMilliseconds(value);
                 this.time = new Temporal.ZonedDateTime(instant.epochNanoseconds, this.getTimezoneId());
             }
-            else {
+            else
                 throw new TypeError('date must be set using a Date.');
-            }
         }, enumerable, configurable,
     },
 });
@@ -344,9 +342,7 @@ Datetime_global.prototype.setTime = function (timestamp) {
  * console.log(dt.toString()); // "Fri Apr 18 2025 00:00:00 UTC+0000 (UTC)"
  */
 Datetime_global.prototype.toString = function () {
-    const self = this, pad = function (strx, number = 2) {
-        return String(strx).padStart(Number(number), '0');
-    }, fullYear = pad(self.time.withCalendar('iso8601').year, 4);
+    const self = this, pad = (n, z = 2) => padNumber(n, z).replace(/^\+/, ''), fullYear = pad(self.time.withCalendar('iso8601').year, 4);
     const offset = Datetime_global.getUTCOffset(self.getTimezoneOffset()), string = `${self.getDayName()} ${self.getMonthName()} ${pad(self.getDate())}`, time = `${pad(self.getHours())}:${pad(self.getMinutes())}:${pad(self.getSeconds())}`;
     return `${string} ${fullYear} ${time} ${offset} (${self.time.timeZoneId})`;
 };
@@ -933,8 +929,9 @@ Datetime_global.getUTCOffset = function (offset) {
     if (isNaN(offset))
         return 'UTC+Error';
     const sign = offset > 0 ? "-" : "+", absOffset = Math.abs(offset);
-    const hours = String(Math.trunc(absOffset / 60)).padStart(2, "0");
-    const minutes = String(absOffset % 60).padStart(2, "0");
+    const pad = (n) => padNumber(n).replace(/^\+/, '');
+    const hours = pad(Math.trunc(absOffset / 60));
+    const minutes = pad(absOffset % 60);
     return `UTC${sign}${hours}${minutes}`;
 };
 /**
@@ -1163,9 +1160,7 @@ Datetime_global.prototype.toTimeString = function () {
 Datetime_global.prototype.format = function (pattern) {
     const string = pattern ?? '';
     //(new this.constructor(this, this?.time?.timeZoneId))
-    const pad = function (numberToPad, number = 2, plusIfPositive = false) {
-        return (numberToPad < 0 ? '-' : (plusIfPositive ? '+' : '')) + String(Math.abs(numberToPad)).padStart(Number(number), '0');
-    }, datetime_local = this.withCalender();
+    const datetime_local = this.withCalender(), pad = (n, z = 2) => padNumber(n, z).replace(/^\+/, '');
     const hour24 = pad(datetime_local.getHours()), dayName = datetime_local.getDayName();
     const iso8601 = datetime_local, dayNameFull = datetime_local.getFullDayName();
     const dayNumberMonth = pad(datetime_local.getDayNumberMonth()), N = iso8601.time.dayOfWeek.toString(), //iso8601.time.dayOfWeek
@@ -1660,3 +1655,21 @@ export function dateAsISOString(date) {
 Datetime_global.hostLocalTimezone = function () {
     return Temporal.Now.timeZoneId();
 };
+export function padNumber(number, zeros = 2) {
+    number = -(-number);
+    /*if (Number.isNaN(number)) return 'Not a Number';//;//
+    if (number === +Infinity) return 'Positive Infinity';//
+    if (number === -Infinity) return 'Negative Infinity';*/
+    if (Number.isNaN(number))
+        throw new TypeError('Not A Number is encountered');
+    if (number === +Infinity)
+        throw new TypeError('Positive Infinity is encountered');
+    if (number === -Infinity)
+        throw new TypeError('Negative Infinity is encountered');
+    let negative = false;
+    if (number < 0) {
+        negative = true;
+        number = -number;
+    }
+    return (negative ? '-' : '+') + String(number).padStart(zeros, "0");
+}

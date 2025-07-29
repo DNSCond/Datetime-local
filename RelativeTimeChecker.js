@@ -26,12 +26,6 @@ export class TimeElement extends HTMLElement {
         else if (newValue instanceof Temporal.Instant) {
             this.setAttribute('datetime', new Date(newValue.epochMilliseconds).toISOString());
         }
-        else if (typeof newValue === 'bigint') {
-            console.warn('please do not assign dateTime with a bigint');
-            // Temporal.Instant is the same as Temporal.Instant.fromEpochNanoseconds.
-            const instant = new Temporal.Instant(newValue);
-            this.setAttribute('datetime', (new Date(instant.epochMilliseconds)).toISOString());
-        }
         else if (typeof newValue === 'string' || typeof newValue === 'number') {
             console.warn('please do not assign dateTime with a number or string');
             // toISOString throws on invalid dates.
@@ -73,7 +67,10 @@ export class TimeElement extends HTMLElement {
      * gets the `timezone` attribute of this element.
      */
     get timezone() {
-        return this.getAttribute('timezone');
+        const timezone = this.getAttribute('timezone');
+        if (timezone === 'local')
+            return Datetime_global.hostLocalTimezone();
+        return timezone;
     }
     /**
      * gets a `Datetime_global` representing the `datetime` attribute or null. throws when the `timezone` is invalid.
@@ -107,9 +104,8 @@ export class DT_HTML_Formatter extends TimeElement {
         if (zdt === null)
             return "Invalid Date";
         const callback = this.#callback;
-        if (callback === undefined)
-            return defaultFormatter.call(zdt, zdt, this);
-        const result = callback.call(zdt, zdt, this);
+        const result = Function.prototype.call.call(callback ?? defaultFormatter ??
+            (m => String(m)), zdt, zdt, this);
         if (typeof result === 'string')
             return result;
         else {
