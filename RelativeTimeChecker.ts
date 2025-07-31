@@ -1,5 +1,6 @@
 import {Temporal} from "temporal-polyfill";
 import {dateAsISOString, Datetime_global} from "./Datetime_global.js";
+// import {ZDTDuration} from "./ZDTDuration.js";
 
 // TimeElement, DT_HTML_Formatter, ClockTime, and RelativeTime
 
@@ -9,7 +10,7 @@ import {dateAsISOString, Datetime_global} from "./Datetime_global.js";
 export abstract class TimeElement extends HTMLElement {
     /**
      * sets the `datetime` and possibly `timezone` attribute to the new timestamp of the param.
-     * @param newValue a Date, Temporal.ZonedDateTime, Datetime_global, string, number, or bigint.
+     * @param newValue a Date, Temporal.ZonedDateTime, Datetime_global, string, or number.
      */
     set dateTime(newValue: unknown) {
         if (newValue === null) {
@@ -28,7 +29,7 @@ export abstract class TimeElement extends HTMLElement {
             // toISOString throws on invalid dates.
             this.setAttribute('datetime', (new Date(newValue)).toISOString());
         } else {
-            throw new TypeError('dateTime must be set using a Date, Temporal.ZonedDateTime, Datetime_global, string, number, or bigint');
+            throw new TypeError('dateTime must be set using a Date, Temporal.ZonedDateTime, Datetime_global, string, or number');
         }
     }
 
@@ -218,6 +219,7 @@ export class RelativeTime extends DT_HTML_Formatter {
     constructor() {
         super();
         this.setAttribute('role', 'time');
+        this.setAttribute('aria-live', 'polite');
         this._timer = null;
     }
 
@@ -228,8 +230,7 @@ export class RelativeTime extends DT_HTML_Formatter {
      */
     connectedCallback(): void {
         this.updateTime();
-        // Update every second to keep relative time current
-        this._timer = setInterval(() => this.updateTime(), 1000);
+        this.scheduleNextUpdate();
     }
 
     /**
@@ -238,10 +239,7 @@ export class RelativeTime extends DT_HTML_Formatter {
      * @returns {void}
      */
     disconnectedCallback(): void {
-        if (this._timer) {
-            clearInterval(this._timer);
-            this._timer = null;
-        }
+        this.clearTimer();
     }
 
     /**
@@ -253,20 +251,63 @@ export class RelativeTime extends DT_HTML_Formatter {
      */
     attributeChangedCallback(_name: string, _oldValue: string | null, _newValue: string | null): void {
         this.updateTime();
+        this.scheduleNextUpdate();
     }
 
-    /**
-     * Updates the displayed relative time based on the current "datetime" attribute.
-     * Handles invalid dates gracefully by displaying an error message.
-     * @returns {void}
-     */
+    private clearTimer(): void {
+        if (this._timer !== null) {
+            clearTimeout(this._timer);
+            this._timer = null;
+        }
+    }
+
+    // getDuration(): Temporal.Duration | null {
+    //     const datetime_global = this.datetime_global, timezone = datetime_global?.getTimezoneId(),
+    //         now: Temporal.ZonedDateTime = (new Datetime_global(Datetime_global.now(), timezone)).toTemporalZonedDateTime(),
+    //         zdt: Temporal.ZonedDateTime | undefined = datetime_global?.toTemporalZonedDateTime();
+    //     if (zdt === undefined) return null;
+    //     return new ZDTDuration(zdt.until(now, {
+    //         largestUnit: 'years', smallestUnit: 'seconds',
+    //     })).durr;
+    // }
+
     updateTime(): void {
         try {
             this.textContent = this.formatDT(zdt => this.getRelativeTime(zdt.toDate()));
         } catch (error) {
-            console.error('Error in relative-time element:', error);
             this.textContent = 'Invalid date';
+            throw error;
         }
+    }
+
+    private scheduleNextUpdate(): void {
+        this.clearTimer();
+
+        const date = this.dateTime;
+        if (!date) return; // No valid datetime, no updates needed
+
+        const absDiffInSeconds = Math.abs((Date.now() - date.getTime()) / 1000);
+
+        // Determine the update interval based on the time difference
+        let intervalMs: number;
+        if (absDiffInSeconds >= 31536000) { // >1 year
+            return; // No updates needed, relative time won’t change soon
+        } else if (absDiffInSeconds >= 2629746) { // >1 month
+            intervalMs = 24 * 60 * 60 * 1000; // Update daily
+        } else if (absDiffInSeconds >= 604800) { // >1 week
+            intervalMs = 60 * 60 * 1000; // Update hourly
+        } else if (absDiffInSeconds >= 3600) { // >1 hour
+            intervalMs = 60 * 1000; // Update every minute
+        } else if (absDiffInSeconds >= 60) { // >1 minute
+            intervalMs = 1000; // Update every second
+        } else { // <1 minute
+            intervalMs = 1000; // Update every second for near-real-time
+        }
+
+        this._timer = setTimeout(() => {
+            this.updateTime();
+            this.scheduleNextUpdate();
+        }, intervalMs);
     }
 
     /**
@@ -322,9 +363,7 @@ export class RelativeTime extends DT_HTML_Formatter {
             return format(minutes, minutes === 1 ? 'minute' : 'minutes');
         }
         // sub Seconds
-        if (absDiff < 1) {
-            return 'now';
-        }
+        if (absDiff < 1) return 'now';
         // Seconds
         return format(absDiff, absDiff === 1 ? 'second' : 'seconds');
     }

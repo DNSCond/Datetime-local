@@ -1,6 +1,8 @@
-node_modules
 note.js
+node_modules
 browsertest.html
-*.txt
 assignProperties.ts
 assignProperties.js
+template.js
+tests.html
+*.txt
