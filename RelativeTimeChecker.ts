@@ -464,6 +464,9 @@ function toHumanString(self: Temporal.Duration | null, units?: number): string {
     return `${constructed}, and${popped}`.replace(/^\s+/, '');
 }
 
+/**
+ * still questioning this
+ */
 class RangeTime extends TimeElement {
     /**
      * Returns the list of attributes to observe for changes.

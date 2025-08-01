@@ -463,6 +463,9 @@ function toHumanString(self, units) {
     const popped = constructed.pop();
     return `${constructed}, and${popped}`.replace(/^\s+/, '');
 }
+/**
+ * still questioning this
+ */
 class RangeTime extends TimeElement {
     /**
      * Returns the list of attributes to observe for changes.

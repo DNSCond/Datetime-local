@@ -36,7 +36,9 @@ export type Datetime_global = {
     set epochNanoseconds(value: bigint),
     get minutesAfterMidnight(): number,
     set minutesAfterMidnight(value: number),
-    get timezoneId(): string, get date(): Date,
+    set timezoneId(value: string),
+    get timezoneId(): string,
+    get date(): Date,
     set date(value: Date | unknown),
 
     /**
