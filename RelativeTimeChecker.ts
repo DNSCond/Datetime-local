@@ -1,5 +1,5 @@
 import {Temporal} from "temporal-polyfill";
-import {dateAsISOString, Datetime_global} from "./Datetime_global.js";
+import {Datetime_global} from "./Datetime_global.js";
 
 // TimeElement, DT_HTML_Formatter, ClockTime, and RelativeTime
 
@@ -9,7 +9,7 @@ function setDatetime(datetime: unknown, element: HTMLElement, setAttribute: bool
         attribute = null;
         element.removeAttribute('datetime');
     } else if (datetime instanceof Temporal.ZonedDateTime) {
-        attribute = dateAsISOString(datetime.epochMilliseconds);
+        attribute = (new Date(datetime.epochMilliseconds)).toISOString();
         if (setAttribute)
             element.setAttribute('timezone', datetime.timeZoneId);
     } else if (datetime instanceof Datetime_global) {
