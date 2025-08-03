@@ -1,6 +1,8 @@
 import { Datetime_global } from "./Datetime_global.js";
 import { Temporal } from "temporal-polyfill";
 import { ClockTime } from "./RelativeTimeChecker.js";
+// ClockTime's name was chosen because 'time' was already used, and it needed a hyphen,
+// and ClockDate's name was chosen because ClockTime + Date => ClockDate.
 export class ClockDate extends ClockTime {
     validateDate() {
         const date = this.dateTime;
@@ -181,28 +183,28 @@ export class ClockDate extends ClockTime {
         if (zdt === null)
             throw new TypeError('no dateTime is set');
         this.validateDate();
-        return zdt.getSeconds();
+        return zdt.getMilliseconds();
     }
     getUTCDay() {
         const zdt = this.datetime_global;
         if (zdt === null)
             throw new TypeError('no dateTime is set');
         this.validateDate();
-        return zdt.getSeconds();
+        return zdt.getUTCDay();
     }
     getUTCYear() {
         const zdt = this.datetime_global;
         if (zdt === null)
             throw new TypeError('no dateTime is set');
         this.validateDate();
-        return zdt.getSeconds();
+        return zdt.getUTCYear();
     }
     getUTCFullYear() {
         const zdt = this.datetime_global;
         if (zdt === null)
             throw new TypeError('no dateTime is set');
         this.validateDate();
-        return zdt.getSeconds();
+        return zdt.getUTCFullYear();
     }
     getUTCMonth() {
         const zdt = this.datetime_global;

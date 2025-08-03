@@ -155,14 +155,6 @@ export class ClockTime extends DT_HTML_Formatter {
     }
 
     /**
-     * Constructs a ClockTime element and sets the ARIA role to "time".
-     */
-    constructor() {
-        super();
-        this.setAttribute('role', 'time');
-    }
-
-    /**
      * Called when the element is inserted into the DOM.
      * Triggers an initial update of the displayed time.
      * @returns {void}
@@ -190,7 +182,14 @@ export class ClockTime extends DT_HTML_Formatter {
     updateTime(): void {
         const format: string = this.getAttribute('format') ?? Datetime_global.FORMAT_DATETIME_GLOBALV3;
         try {
-            this.textContent = this.formatDT(zdt => zdt.format(format));
+            const textContent = this.formatDT(zdt => zdt.format(format)),
+                dateTime = this.dateTime?.toISOString();
+            if (dateTime === undefined) {
+                // noinspection ExceptionCaughtLocallyJS
+                throw new TypeError('no datetime set');
+            }
+            this.innerHTML = Object.assign(document.createElement('time'),
+                {textContent, dateTime}).outerHTML;
         } catch (error) {
             this.textContent = "Invalid Date";
             throw error;
