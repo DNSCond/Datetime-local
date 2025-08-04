@@ -1186,15 +1186,9 @@ Object.defineProperties(Datetime_global.prototype, {
         get(this: Datetime_global): boolean {
             return this[useOldJSON];
         }, set(this: Datetime_global, value: boolean): void {
-            if (value as unknown === true) {
+            if (value as unknown === true || value as unknown === false) {
                 this[useOldJSON] = value;
-                this.toJSON = function () {
-                    return this.toDate().toJSON();
-                };
-            } else if (value as unknown === false) {
-                this[useOldJSON] = false;
-                this.toJSON = this.constructor.prototype.toJSON;
-            } else if (value as unknown === false) {
+            } else {
                 throw new TypeError('useOldJSON must be set using an explicit boolean')
             }
         }, enumerable, configurable,
@@ -1743,7 +1737,8 @@ Datetime_global.prototype.toISOString = function (this: Datetime_global): string
  * const dt = new Datetime_global("2025-04-18T00:00:00Z", "UTC");
  * console.log(dt.toJSON()); // "2025-04-18T00:00:00+00:00[UTC]"
  */
-Datetime_global.prototype.toJSON = function (): string {
+Datetime_global.prototype.toJSON = function (this: Datetime_global): string {
+    if (this[useOldJSON] as unknown === true) return this.toDate().toJSON();
     return this.time.toJSON();
 };
 
