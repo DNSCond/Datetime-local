@@ -1,6 +1,6 @@
 # Changelog.md
 
-## 0.7.0
+## 0.7.0: useOldJSON
 
 - `useOldJSON` added as accessor property when set to true then `this.toJSON` will be in
   the format of `Date.prototype.toJSON`,
