@@ -15,6 +15,14 @@ with nonlocal timezone support. Use it when you need:
 
 For complex temporal operations, consider using `Temporal` directly.
 
+### Design Philosophy
+
+`Datetime_global` is designed to behave like the native JavaScript `Date` object for methods with matching names
+(e.g., `getFullYear`, `toISOString`), except `toJSON`. The `toJSON` method can produce either a `Date`-like ISO string
+(when `useOldJSON = true`, the default) or a `Temporal.ZonedDateTime` string (when `useOldJSON = false`).
+
+there are also extensions of the `Date` object.
+
 ## installation
 
 ```bash
@@ -53,7 +61,7 @@ const date = Datetime_global.fromComponentsUTC(
 console.log((new Datetime_global(date)).toTimezone('Asia/Tokyo').toString()); // Fri Mar 01 2024 14:30:50 UTC+0900 (Asia/Tokyo)
 
 // you can even call Datetime_global as a non constructor
-console.log(Datetime_global(0,'America/new_York')); // Wed Dec 31 1969 19:00:00 UTC-0500 (America/New_York)
+console.log(Datetime_global(0, 'America/new_York')); // Wed Dec 31 1969 19:00:00 UTC-0500 (America/New_York)
 ```
 
 ## `Datetime_global` Construction
@@ -81,7 +89,7 @@ an overview of the public api. note that semver version 0. meaning anything can 
 
 the documentations are within jsdoc comments.
 
-### Getters:
+### Getters methods:
 
 - `getFullYear(): number` - Full year (e.g., 2025).
 - `getYear(): number` - Year minus 1900.
@@ -95,7 +103,7 @@ the documentations are within jsdoc comments.
 
 UTC Variants: Each getter (except `valueOf`, `getTime`) has a `getUTC*` version (e.g., `getUTCFullYear`).
 
-### Setters:
+### Setters methods:
 
 - `setFullYear(year, month?, date?): number` - Sets year, month, day.
 - `setMonth(month, date?): number` - Sets month, day.
@@ -107,12 +115,46 @@ UTC Variants: Each getter (except `valueOf`, `getTime`) has a `getUTC*` version 
 - `setMicroseconds(microseconds: bigint, nanoseconds?: bigint): bigint` - Sets microseconds, nanoseconds.
 - `setNanoseconds(nanoseconds: bigint, microseconds?: bigint): bigint` - Sets nanoseconds, microseconds.
 - `setTime(timestamp: number | bigint): number` - Sets timestamp (deprecated).
+- `setOldJSON(useOldJSON: boolean): Datetime_global`: sets the `useOldJSON` with the value provided.
 
-UTC Variants: `setUTCFullYear`, `setUTCMonth`, `setUTCDate`, `setUTCHours`, `setUTCMinutes`, `setUTCSeconds`, `setUTCMilliseconds`.
+UTC Variants: `setUTCFullYear`, `setUTCMonth`, `setUTCDate`,
+`setUTCHours`, `setUTCMinutes`, `setUTCSeconds`, `setUTCMilliseconds`.
+
+### Getters accessors:
+
+i think they are self-explanatory, otherwise the jsdocs are available in the code
+
+- `get year(): number`
+- `get month(): number`
+- `get day(): number`
+- `get dayOfWeek(): number`
+- `get hour(): number`
+- `get minute(): number`
+- `get second(): number`
+- `get millisecond(): number`
+- `get microsecond(): number`
+- `get nanosecond(): number`
+- `get epochMilliseconds(): number`
+- `get epochNanoseconds(): bigint`
+- `get minutesAfterMidnight(): number`
+- `get timezoneId(): string`
+- `get date(): Date`
+- `get useOldJSON(): boolean`
+
+### Setters accessors:
+
+i think they are self-explanatory, otherwise the jsdocs are available in the code
+
+- `set epochNanoseconds(value: bigint)`
+- `set minutesAfterMidnight(value: number)`
+- `set timezoneId(value: string)`
+- `set date(value: Date | unknown)`
+- `set useOldJSON(value: boolean)`
 
 ### Formatters:
 
-- `toString(): string` - Formats as `(php): "D M d Y H:i:s \\U\\T\\CO (e)"` (e.g., `Fri Apr 18 2025 00:00:00 UTC+0000 (UTC)`).
+- `toString(): string` - Formats as `(php): "D M d Y H:i:s \\U\\T\\CO (e)"` (
+  e.g., `Fri Apr 18 2025 00:00:00 UTC+0000 (UTC)`).
 - `toISOString(): string` - ISO 8601 in UTC (e.g., `2025-04-18T00:00:00.000Z`).
 - `toJSON(): string` - ISO 8601 with timezone (e.g., `2025-04-18T00:00:00+00:00[UTC]`).
 - `format(pattern: string): string` - PHP-like format (e.g., `Y-m-d` -> `2025-04-18`).
@@ -130,7 +172,9 @@ UTC Variants: `setUTCFullYear`, `setUTCMonth`, `setUTCDate`, `setUTCHours`, `set
 
 - `getDayName(): string`, `getFullDayName(): string` - Abbreviated or full weekday (en-US).
 - `getMonthName(): string`, `getFullMonthName(): string` - Abbreviated or full month (en-US).
-- `startOfDay(this: Datetime_global, timezone?: Temporal.TimeZoneLike): Datetime_global` - Sets time to the start of day in the current timezone or the timezone given, the output will be in the original timezone, use toTimezone to convert the timezone.
+- `startOfDay(this: Datetime_global, timezone?: Temporal.TimeZoneLike): Datetime_global` - Sets time to the start of day
+  in the current timezone or the timezone given, the output will be in the original timezone, use toTimezone to convert
+  the timezone.
 
 ### Static Methods:
 
@@ -165,7 +209,7 @@ console.log(); // print an empty string to space out
 
 console.log(time.toHTMLString()); // <time datetime="2025-06-09T23:33:52.000Z">Tue Jun 10 2025 01:33:52 UTC+0200 (Europe/Berlin)</time>
 
-time.setUTCHours(0,0,0,0); // midnight UTC
+time.setUTCHours(0, 0, 0, 0); // midnight UTC
 
 console.log(time.toHTMLString()); // Mon, 09 Jun 2025 00:00:00 UTC
 console.log();
@@ -180,11 +224,11 @@ but for string interpolation use ${{raw: 'an object with a raw property'}}
 you can even put Temporal Types in this: ${new Temporal.PlainDate(2025, 6, 25)}, ${new Temporal.PlainTime(21, 6, 25)}
 
 or this ${{locale: 'de-DE'}}. this is bound to what templateFormat is called upon cloned "${function () {
-  return this;
+    return this;
 }}"
 
 you can even "${(m) => m.toUTCString()}". the this bound is  bound to the first argument (${function (self) {
-  return this === self;
+    return this === self;
 }}).`, '\n\n--');
 console.log((new Datetime_global(Datetime_global.now(), 'UTC')).templateFormat`
 there are even constants for this
@@ -214,8 +258,8 @@ console.log(time.toTemporalZonedDateTime());
 console.log(); // print an empty string to space out
 // toJSON is implicitly called here
 console.log(JSON.stringify({
-  Date: new Date, Datetime_global: new Datetime_global,
-  Temporal_ZonedDateTime: new Temporal.ZonedDateTime(Datetime_global.now(), "UTC"),
+    Date: new Date, Datetime_global: new Datetime_global,
+    Temporal_ZonedDateTime: new Temporal.ZonedDateTime(Datetime_global.now(), "UTC"),
 }, null, 2));
 /*{
   "Date": "2025-06-09T14:29:37.049Z",

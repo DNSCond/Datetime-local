@@ -1,5 +1,9 @@
 import {Temporal} from 'temporal-polyfill';
 import {ZDTDuration} from "./ZDTDuration.js";
+/**
+ * this class `Datetime_global` should behave exactly like `Date` if a name matches that on `Date`.
+ * except `toJSON`. until now. that was the design goal all along. to have Date with `Temporal`'s precision
+ */
 
 // npm: https://www.npmjs.com/package/datetime_global
 // github: https://github.com/DNSCond/Datetime-local
@@ -17,30 +21,103 @@ export type constructorInput =
     | bigint
     | number
     | string;
+const useOldJSON = Symbol('useOldJSON');
+type useOldJSON = typeof useOldJSON;
 export type Datetime_global = {
     constructor: Datetime_global_constructor,
+    /**
+     * the wrapped ZonedDateTime
+     */
     time: Temporal.ZonedDateTime,
     [Symbol.toStringTag]: string,
+    /**
+     * a getter for the full year
+     */
     get year(): number,
+    /**
+     * a getter for the month
+     */
     get month(): number,
+    /**
+     * a getter for the day of month
+     */
     get day(): number,
+    /**
+     * a getter for the dayOfWeek
+     */
     get dayOfWeek(): number,
+    /**
+     * a getter for the hour
+     */
     get hour(): number,
+    /**
+     * a getter for the minute
+     */
     get minute(): number,
+    /**
+     * a getter for the second
+     */
     get second(): number,
+    /**
+     * a getter for the millisecond
+     */
     get millisecond(): number,
+    /**
+     * a getter for the microsecond
+     */
     get microsecond(): number,
+    /**
+     * a getter for the nanosecond
+     */
     get nanosecond(): number,
+    /**
+     * a getter for the epochMilliseconds
+     */
     get epochMilliseconds(): number,
+    /**
+     * a getter for the epochNanoseconds
+     */
     get epochNanoseconds(): bigint,
+    /**
+     * a setter for the epochNanoseconds (only accepts bigints)
+     */
     set epochNanoseconds(value: bigint),
+    /**
+     * a getter for the minutesAfterMidnight
+     */
     get minutesAfterMidnight(): number,
+    /**
+     * a setter for the minutesAfterMidnight, number is truncated.
+     */
     set minutesAfterMidnight(value: number),
-    set timezoneId(value: string),
+    /**
+     * a getter for the timezoneId
+     */
     get timezoneId(): string,
+    /**
+     * a setter for the timezoneId
+     */
+    set timezoneId(value: string),
+    /**
+     * a getter for the Date representation of this instance
+     */
     get date(): Date,
+    /**
+     * a setter for the Date representation of this instance
+     */
     set date(value: Date | unknown),
 
+    /**
+     * a getter. if true then this.toJSON will be in the format of `Date.prototype.toJSON`,
+     * otherwise in the format of `Temporal.ZonedDateTime.prototype.toJSON`.
+     */
+    get useOldJSON(): boolean,
+    /**
+     * a setter. if true then `this.toJSON` will be in the format of `Date.prototype.toJSON`,
+     * otherwise in the format of `Temporal.ZonedDateTime.prototype.toJSON`.
+     */
+    set useOldJSON(value: boolean),
+    [useOldJSON]: boolean,
     /**
      * Returns a string representation of the date-time, including timezone offset and ID.
      * Format (php): "D M d Y H:i:s \U\T\CO (e)" (e.g., "Fri Apr 18 2025 00:00:00 UTC+0000 (UTC)").
@@ -742,6 +819,7 @@ export type Datetime_global = {
     setUTCSeconds(this: Datetime_global, seconds: number, milliseconds?: number): number;
 
     toHTMLFormatted(dtg: Datetime_global, format: string): string;
+    setOldJSON(this: Datetime_global, useOldJSON: boolean): Datetime_global;
 };
 
 export interface Datetime_global_constructor {
@@ -946,15 +1024,6 @@ export interface Datetime_global_constructor {
     daynamesFull: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     monthnamesFull: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-    /**
-     * Creates a Datetime_global from a Temporal.ZonedDateTime or parseable input.
-     * @deprecated Use the Datetime_global constructor instead.
-     * @param zonedDatetime - A Temporal.ZonedDateTime or parseable object/string.
-     * @returns A Datetime_global instance.
-     * @throws RangeError if the input cannot be parsed.
-     */
-    fromTemporalZonedDateTime(zonedDatetime: Temporal.ZonedDateTime | unknown): Datetime_global;
-
     compare(zonedDatetime1: constructorInput, zonedDatetime2: constructorInput): number;
 }
 
@@ -1084,6 +1153,7 @@ export const Datetime_global: Datetime_global_constructor = function (
         },
     });
     if (!new.target) return self.toString();
+    else self.useOldJSON = true;
 } as Datetime_global_constructor;
 
 Object.defineProperties(Datetime_global.prototype, {
@@ -1112,8 +1182,29 @@ Object.defineProperties(Datetime_global.prototype, {
                 this.time = new Temporal.ZonedDateTime(instant.epochNanoseconds, this.getTimezoneId());
             } else throw new TypeError('date must be set using a Date.');
         }, enumerable, configurable,
+    }, useOldJSON: {
+        get(this: Datetime_global): boolean {
+            return this[useOldJSON];
+        }, set(this: Datetime_global, value: boolean): void {
+            if (value as unknown === true) {
+                this[useOldJSON] = value;
+                this.toJSON = function () {
+                    return this.toDate().toJSON();
+                };
+            } else if (value as unknown === false) {
+                this[useOldJSON] = false;
+                this.toJSON = this.constructor.prototype.toJSON;
+            } else if (value as unknown === false) {
+                throw new TypeError('useOldJSON must be set using an explicit boolean')
+            }
+        }, enumerable, configurable,
     },
 });
+
+Datetime_global.prototype.setOldJSON = function (this: Datetime_global, useOldJSON: boolean): Datetime_global {
+    this.useOldJSON = useOldJSON;
+    return this;
+};
 
 type overflow_overwrite = {
     day?: number, year?: number, month?: number,
@@ -1900,23 +1991,6 @@ Datetime_global.prototype.setUTCSeconds = function (this: Datetime_global, secon
  */
 Datetime_global.prototype.toTemporalZonedDateTime = function (): Temporal.ZonedDateTime {
     return this.time;
-};
-
-/**
- * Creates a Datetime_global from a Temporal.ZonedDateTime or parseable input.
- * @deprecated Use the Datetime_global constructor instead.
- * @param zonedDatetime - A Temporal.ZonedDateTime or parseable object/string.
- * @returns A Datetime_global instance.
- * @throws RangeError if the input cannot be parsed.
- */
-Datetime_global.fromTemporalZonedDateTime = function (zonedDatetime: Temporal.ZonedDateTime | unknown): Datetime_global {
-    const self = Object.create(Datetime_global.prototype);
-    if (zonedDatetime instanceof Temporal.ZonedDateTime) {
-        self.time = zonedDatetime;
-    } else {
-        self.time = Temporal.ZonedDateTime.from(zonedDatetime as any);
-    }
-    return self;
 };
 
 // custom
@@ -2721,10 +2795,6 @@ export function overflowDatetime_global(
         zoneddatetime = zoneddatetime.add(Temporal.Duration.from({[unit]: duration[unit]}));
     }
     return zoneddatetime;
-}
-
-export function dateAsISOString(date: Date | number): string {
-    return (new Date(date)).toISOString();
 }
 
 Datetime_global.hostLocalTimezone = function (): string {
