@@ -149,8 +149,7 @@ export type Datetime_global = {
     valueOf(this: Datetime_global): number,
 
     /**
-     * Sets the timestamp, modifying the instance in place.
-     * @deprecated Use the `Datetime_global` constructor instead.
+     * Sets the timestamp, modifying the instance in place. Use the `Datetime_global` constructor instead.
      * @param timestamp - Nanoseconds (bigint) or milliseconds (number) since the epoch.
      * @returns The new timestamp in milliseconds since the epoch.
      * @example
@@ -1375,8 +1374,7 @@ Datetime_global.prototype.getTime = function (this: Datetime_global): number {
 };
 
 /**
- * Sets the timestamp, modifying the instance in place.
- * @deprecated Use the `Datetime_global` constructor instead.
+ * Sets the timestamp, modifying the instance in place. Use the `Datetime_global` constructor instead.
  * @param timestamp - Nanoseconds (bigint) or milliseconds (number) since the epoch.
  * @returns The new timestamp in milliseconds since the epoch.
  * @example
@@ -2448,6 +2446,12 @@ export const plainToZoned = function (tempTime: Datetime_global | Date | Tempora
     return time;
 };
 
+// "changed Datetime_global.prototype.templateFormat in 0.7.1"
+export const nullStyle = Symbol('nullStyle');
+export type nullStyle = typeof nullStyle;
+export const undefinedFormat = Symbol('undefinedFormat');
+export type undefinedFormat = typeof undefinedFormat;
+
 /**
  * Formats the date-time using a template literal, where placeholders are processed by the format method.
  * @param strings - The literal parts of the template string.
@@ -2465,18 +2469,27 @@ Datetime_global.prototype.templateFormat = function (this: Datetime_global, stri
     return strings.reduce(function (result: string, str: string, i: number) {
         let exp: unknown = expressions[i], formatIt: boolean = false;
         if (exp === null) {
-            exp = self.toString();
+            exp = '';
         } else {
             switch (typeof exp) {
                 case "bigint":
                 case "number":
                 case "boolean":
-                    break;
                 case "undefined":
-                    exp = self.toDate().toString();
+                    exp = '';
                     break;
                 case "symbol":
-                    throw new TypeError('Symbols are not supported; convert to string');
+                    switch (exp) {
+                        case nullStyle:
+                            exp = self.toString();
+                            break;
+                        case undefinedFormat:
+                            exp = self.toDate().toString();
+                            break;
+                        default:
+                            throw new TypeError('Symbols are not supported; convert to string');
+                    }
+                    break;
                 case "function": {
                     const cloned: Datetime_global = self.clone();
                     exp = String(exp.call(cloned, cloned));
@@ -2485,18 +2498,33 @@ Datetime_global.prototype.templateFormat = function (this: Datetime_global, stri
                 case "object":
                     if (exp instanceof Datetime_global) {
                         exp = exp.toString();
+                        // the conditions `exp === Datetime_global`, `exp === globalThis.Date`,
+                        // `globalThis.Date.now` and `exp === globalThis?.Temporal?.Now && exp === Temporal?.Now`
+                        // arent expected to be true, but still
+
+                        // @ts-expect-error
+                    } else if (exp === globalThis?.Temporal?.Now && exp === Temporal?.Now) {
+                        exp = Temporal.Now.zonedDateTimeISO(Temporal.Now.timeZoneId()).toString();
+                    } else if (exp === Datetime_global) {
+                        exp = Datetime_global();
+                    } else if (exp === globalThis.Date) {
+                        exp = Date();
+                    } else if (exp === globalThis.Date.now) {
+                        // this may seem wierd, but if you really want to
+                        // display a timestamp then just call the function
+                        exp = Date();
+                    } else if (exp === globalThis.Date.UTC) {
+                        exp = (new Date).toUTCString();
                     } else if (exp instanceof Date) {
                         exp = exp.toString();
                     } else if (exp instanceof Temporal.ZonedDateTime || exp instanceof Temporal.Instant) {
                         exp = Datetime_global(exp);
                     } else if (exp instanceof Temporal.PlainDateTime) {
-                        exp = (new Datetime_global(exp.toZonedDateTime(Temporal.Now.timeZoneId()))).format('D Y H:i:s');
+                        exp = exp.toLocaleString('en-US', {month: 'long', year: 'numeric', day: "2-digit"});
                     } else if (exp instanceof Temporal.PlainTime) {
                         exp = exp.toLocaleString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            second: '2-digit',
-                            hour12: false,
+                            hour: 'numeric', minute: '2-digit',
+                            second: '2-digit', hour12: false,
                         });
                     } else if (exp instanceof Temporal.PlainYearMonth) {
                         exp = exp.toLocaleString('en-US', {month: 'long', year: 'numeric'});
@@ -2535,6 +2563,8 @@ Datetime_global.prototype.templateFormat = function (this: Datetime_global, stri
                     break;
                 case "string":
                     formatIt = true;
+                    break;
+                default:
             }
         }
 

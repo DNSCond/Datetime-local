@@ -170,17 +170,10 @@ Object.defineProperties(Datetime_global.prototype, {
         get() {
             return this[useOldJSON];
         }, set(value) {
-            if (value === true) {
+            if (value === true || value === false) {
                 this[useOldJSON] = value;
-                this.toJSON = function () {
-                    return this.toDate().toJSON();
-                };
             }
-            else if (value === false) {
-                this[useOldJSON] = false;
-                this.toJSON = this.constructor.prototype.toJSON;
-            }
-            else if (value === false) {
+            else {
                 throw new TypeError('useOldJSON must be set using an explicit boolean');
             }
         }, enumerable, configurable,
@@ -349,8 +342,7 @@ Datetime_global.prototype.getTime = function () {
     return this.valueOf();
 };
 /**
- * Sets the timestamp, modifying the instance in place.
- * @deprecated Use the `Datetime_global` constructor instead.
+ * Sets the timestamp, modifying the instance in place. Use the `Datetime_global` constructor instead.
  * @param timestamp - Nanoseconds (bigint) or milliseconds (number) since the epoch.
  * @returns The new timestamp in milliseconds since the epoch.
  * @example
@@ -676,6 +668,8 @@ Datetime_global.prototype.toISOString = function () {
  * console.log(dt.toJSON()); // "2025-04-18T00:00:00+00:00[UTC]"
  */
 Datetime_global.prototype.toJSON = function () {
+    if (this[useOldJSON] === true)
+        return this.toDate().toJSON();
     return this.time.toJSON();
 };
 /**
@@ -1327,6 +1321,9 @@ export const plainToZoned = function (tempTime) {
     }
     return time;
 };
+// "changed Datetime_global.prototype.templateFormat in 0.7.1"
+export const nullStyle = Symbol('nullStyle');
+export const undefinedFormat = Symbol('undefinedFormat');
 /**
  * Formats the date-time using a template literal, where placeholders are processed by the format method.
  * @param strings - The literal parts of the template string.
@@ -1344,19 +1341,28 @@ Datetime_global.prototype.templateFormat = function (strings, ...expressions) {
     return strings.reduce(function (result, str, i) {
         let exp = expressions[i], formatIt = false;
         if (exp === null) {
-            exp = self.toString();
+            exp = '';
         }
         else {
             switch (typeof exp) {
                 case "bigint":
                 case "number":
                 case "boolean":
-                    break;
                 case "undefined":
-                    exp = self.toDate().toString();
+                    exp = '';
                     break;
                 case "symbol":
-                    throw new TypeError('Symbols are not supported; convert to string');
+                    switch (exp) {
+                        case nullStyle:
+                            exp = self.toString();
+                            break;
+                        case undefinedFormat:
+                            exp = self.toDate().toString();
+                            break;
+                        default:
+                            throw new TypeError('Symbols are not supported; convert to string');
+                    }
+                    break;
                 case "function":
                     {
                         const cloned = self.clone();
@@ -1366,6 +1372,27 @@ Datetime_global.prototype.templateFormat = function (strings, ...expressions) {
                 case "object":
                     if (exp instanceof Datetime_global) {
                         exp = exp.toString();
+                        // the conditions `exp === Datetime_global`, `exp === globalThis.Date`,
+                        // `globalThis.Date.now` and `exp === globalThis?.Temporal?.Now && exp === Temporal?.Now`
+                        // arent expected to be true, but still
+                        // @ts-expect-error
+                    }
+                    else if (exp === globalThis?.Temporal?.Now && exp === Temporal?.Now) {
+                        exp = Temporal.Now.zonedDateTimeISO(Temporal.Now.timeZoneId()).toString();
+                    }
+                    else if (exp === Datetime_global) {
+                        exp = Datetime_global();
+                    }
+                    else if (exp === globalThis.Date) {
+                        exp = Date();
+                    }
+                    else if (exp === globalThis.Date.now) {
+                        // this may seem wierd, but if you really want to
+                        // display a timestamp then just call the function
+                        exp = Date();
+                    }
+                    else if (exp === globalThis.Date.UTC) {
+                        exp = (new Date).toUTCString();
                     }
                     else if (exp instanceof Date) {
                         exp = exp.toString();
@@ -1374,14 +1401,12 @@ Datetime_global.prototype.templateFormat = function (strings, ...expressions) {
                         exp = Datetime_global(exp);
                     }
                     else if (exp instanceof Temporal.PlainDateTime) {
-                        exp = (new Datetime_global(exp.toZonedDateTime(Temporal.Now.timeZoneId()))).format('D Y H:i:s');
+                        exp = exp.toLocaleString('en-US', { month: 'long', year: 'numeric', day: "2-digit" });
                     }
                     else if (exp instanceof Temporal.PlainTime) {
                         exp = exp.toLocaleString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            second: '2-digit',
-                            hour12: false,
+                            hour: 'numeric', minute: '2-digit',
+                            second: '2-digit', hour12: false,
                         });
                     }
                     else if (exp instanceof Temporal.PlainYearMonth) {
@@ -1428,6 +1453,8 @@ Datetime_global.prototype.templateFormat = function (strings, ...expressions) {
                     break;
                 case "string":
                     formatIt = true;
+                    break;
+                default:
             }
         }
         const stringified = String(exp), formatted = formatIt ? self.format(stringified) : stringified;

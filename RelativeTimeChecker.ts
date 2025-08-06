@@ -7,7 +7,7 @@ function setDatetime(datetime: unknown, element: HTMLElement, setAttribute: bool
     let attribute;
     if (datetime === null) {
         attribute = null;
-        element.removeAttribute('datetime');
+        if (setAttribute) element.removeAttribute('datetime');
     } else if (datetime instanceof Temporal.ZonedDateTime) {
         attribute = (new Date(datetime.epochMilliseconds)).toISOString();
         if (setAttribute)
