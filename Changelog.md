@@ -1,5 +1,9 @@
 # Changelog.md
 
+## 0.7.2: fixed bigint, number,and boolean
+
+- break;
+
 ## 0.7.1: useOldJSON 2
 
 - `set useOldJSON` will now properly `TypeError` is you do not pass a boolean primitive

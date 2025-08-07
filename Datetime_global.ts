@@ -2475,6 +2475,7 @@ Datetime_global.prototype.templateFormat = function (this: Datetime_global, stri
                 case "bigint":
                 case "number":
                 case "boolean":
+                    break;
                 case "undefined":
                     exp = '';
                     break;

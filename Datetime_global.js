@@ -1348,6 +1348,7 @@ Datetime_global.prototype.templateFormat = function (strings, ...expressions) {
                 case "bigint":
                 case "number":
                 case "boolean":
+                    break;
                 case "undefined":
                     exp = '';
                     break;
