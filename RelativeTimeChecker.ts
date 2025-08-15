@@ -218,7 +218,7 @@ export class RelativeTime extends DT_HTML_Formatter {
      * @returns {string[]}
      */
     static get observedAttributes(): string[] {
-        return ['datetime'];
+        return ['datetime', 'precision'];
     }
 
     /**
@@ -269,19 +269,34 @@ export class RelativeTime extends DT_HTML_Formatter {
         }
     }
 
-    // getDuration(): Temporal.Duration | null {
-    //     const datetime_global = this.datetime_global, timezone = datetime_global?.getTimezoneId(),
-    //         now: Temporal.ZonedDateTime = (new Datetime_global(Datetime_global.now(), timezone)).toTemporalZonedDateTime(),
-    //         zdt: Temporal.ZonedDateTime | undefined = datetime_global?.toTemporalZonedDateTime();
-    //     if (zdt === undefined) return null;
-    //     return new ZDTDuration(zdt.until(now, {
-    //         largestUnit: 'years', smallestUnit: 'seconds',
-    //     })).durr;
-    // }
+    getDuration(): Temporal.Duration | null {
+        const datetime_global = this.datetime_global, timezone = datetime_global?.getTimezoneId(),
+            now: Temporal.ZonedDateTime = (new Datetime_global(Datetime_global.now(), timezone)).toTemporalZonedDateTime(),
+            zdt: Temporal.ZonedDateTime | undefined = datetime_global?.toTemporalZonedDateTime();
+        if (zdt === undefined) return null;
+        return zdt.until(now, {
+            largestUnit: 'years', smallestUnit: 'seconds',
+        });
+    }
 
     updateTime(): void {
+        const self = this;
         try {
-            this.textContent = this.formatDT(zdt => this.getRelativeTime(zdt.toDate()));
+            this.textContent = this.formatDT(function (zdt) {
+                const precision = self.getAttribute('precision');
+                if (precision === 'modern') {
+                    const duration = self.getDuration();
+                    if (duration) {
+                        const value = toHumanString(duration, 2),
+                            format = function (value: string): string {
+                                if (duration.sign < 0) return `in ${value}`;
+                                return `${value} ago`;
+                            };
+                        return format(value);
+                    }
+                }
+                return self.getRelativeTime(zdt.toDate());
+            });
         } catch (error) {
             this.textContent = 'Invalid date';
             throw error;
@@ -309,7 +324,7 @@ export class RelativeTime extends DT_HTML_Formatter {
         } else if (absDiffInSeconds >= 60) { // >1 minute
             intervalMs = 1000; // Update every second
         } else { // <1 minute
-            intervalMs = 1000; // Update every second for near-real-time
+            intervalMs = 10; // Update every second for near-real-time
         }
 
         this._timer = setTimeout(() => {
@@ -445,7 +460,7 @@ class DurationTime extends HTMLElement {
     }
 }
 
-function toHumanString(self: Temporal.Duration | null, units?: number): string {
+export function toHumanString(self: Temporal.Duration | null, units?: number): string {
     const constructed: string[] = [];
     if (self === null) return 'unknown duration';
     if (self.years !== 0) constructed.push(` ${self.years} year${Math.abs(self.years) === 1 ? '' : 's'}`);
@@ -464,7 +479,7 @@ function toHumanString(self: Temporal.Duration | null, units?: number): string {
 }
 
 /**
- * still questioning this
+ * @deprecated
  */
 class RangeTime extends TimeElement {
     /**
