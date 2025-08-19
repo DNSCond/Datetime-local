@@ -184,10 +184,7 @@ export class ClockTime extends DT_HTML_Formatter {
         try {
             const textContent = this.formatDT(zdt => zdt.format(format)),
                 dateTime = this.dateTime?.toISOString();
-            if (dateTime === undefined) {
-                // noinspection ExceptionCaughtLocallyJS
-                throw new TypeError('no datetime set');
-            }
+            if (dateTime === undefined) return;
             this.innerHTML = Object.assign(document.createElement('time'),
                 {textContent, dateTime}).outerHTML;
         } catch (error) {

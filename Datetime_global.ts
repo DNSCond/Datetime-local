@@ -1297,6 +1297,7 @@ Datetime_global.nowInTimezone = function (timezone?: Temporal.TimeZoneLike): Dat
 Datetime_global.zeroms = function (): number {
     return (new Date).setMilliseconds(0);
 };
+
 /**
  * Returns the current timestamp in nanoseconds since the epoch, with sub-second components (milliseconds, microseconds, nanoseconds) set to 0.
  * @returns The nanoseconds since the epoch.
@@ -2568,8 +2569,8 @@ Datetime_global.prototype.templateFormat = function (this: Datetime_global, stri
                 default:
             }
         }
-
-        const stringified: string = String(exp), formatted: string = formatIt ? self.format(stringified) : stringified;
+        const stringified: string = String(exp),
+            formatted: string = formatIt ? self.format(stringified) : stringified;
         return result + str + (i < expressions.length ? formatted : '');
     }, '');
 };

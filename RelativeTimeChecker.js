@@ -184,10 +184,8 @@ export class ClockTime extends DT_HTML_Formatter {
         const format = this.getAttribute('format') ?? Datetime_global.FORMAT_DATETIME_GLOBALV3;
         try {
             const textContent = this.formatDT(zdt => zdt.format(format)), dateTime = this.dateTime?.toISOString();
-            if (dateTime === undefined) {
-                // noinspection ExceptionCaughtLocallyJS
-                throw new TypeError('no datetime set');
-            }
+            if (dateTime === undefined)
+                return;
             this.innerHTML = Object.assign(document.createElement('time'), { textContent, dateTime }).outerHTML;
         }
         catch (error) {
@@ -476,6 +474,103 @@ export function toHumanString(self, units) {
     const popped = constructed.pop();
     return `${constructed}, and${popped}`.replace(/^\s+/, '');
 }
+/**
+ * @deprecated
+ */
+class RangeTime extends TimeElement {
+    /**
+     * Returns the list of attributes to observe for changes.
+     * @returns {string[]}
+     */
+    static get observedAttributes() {
+        return ['start', 'end', 'format', 'timezone', 'show-duration', 'separator'];
+    }
+    /**
+     * Constructs a ClockTime element and sets the ARIA role to "time".
+     */
+    constructor() {
+        super();
+        this.setAttribute('role', 'time');
+    }
+    /**
+     * Called when the element is inserted into the DOM.
+     * Triggers an initial update of the displayed time.
+     * @returns {void}
+     */
+    connectedCallback() {
+        this.updateTime();
+    }
+    /**
+     * Called when an observed attribute changes.
+     * @param {string} _name - The name of the attribute.
+     * @param {string|null} _oldValue - The old value of the attribute.
+     * @param {string|null} _newValue - The new value of the attribute.
+     * @returns {void}
+     */
+    attributeChangedCallback(_name, _oldValue, _newValue) {
+        this.updateTime();
+    }
+    set start(newValue) {
+        const datetime = setDatetime(newValue, this);
+        if (datetime)
+            this.setAttribute('start', datetime);
+    }
+    get start() {
+        const start = this.getAttribute('start');
+        return start ? new Date(start) : null;
+    }
+    set end(newValue) {
+        const datetime = setDatetime(newValue, this, false);
+        if (datetime)
+            this.setAttribute('end', datetime);
+    }
+    get end() {
+        const end = this.getAttribute('end');
+        return end ? new Date(end) : null;
+    }
+    get end_datetime_global() {
+        const datetime = this.getAttribute('end');
+        const timezone = this.getAttribute('timezone');
+        if (datetime === null)
+            return null;
+        if (timezone === 'local') {
+            return new Datetime_global(datetime, Datetime_global.hostLocalTimezone());
+        }
+        else {
+            return new Datetime_global(datetime, timezone ?? 'UTC');
+        }
+    }
+    set showDuration(newValue) {
+        if (newValue === null) {
+            this.removeAttribute('show-duration');
+        }
+        else if (!newValue) {
+            this.removeAttribute('show-duration');
+        }
+        else {
+            this.setAttribute('show-duration', '');
+        }
+    }
+    get showDuration() {
+        return this.hasAttribute('show-duration');
+    }
+    updateTime() {
+        const start = this.datetime_global;
+        const end = this.end_datetime_global;
+        if (start === null || end === null)
+            return void (this.textContent = 'Invalid time range');
+        const sameDay = start.startOfDay().getTimestamp() === end.startOfDay().getTimestamp();
+        let format = 'H:i', output = sameDay
+            ? `${start.format('Y-m-d ' + format)}-${end.format(format)}` // Compact format for same day
+            : `${start.format('Y-m-d ' + format)}-${end.format('Y-m-d ' + format)}`;
+        if (this.showDuration) {
+            const duration = start.toTemporalZonedDateTime().until(end.toTemporalZonedDateTime(), { largestUnit: 'hours' });
+            output += ` (${toHumanString(duration)})`;
+        }
+        this.textContent = output;
+    }
+}
 customElements.define('clock-time', ClockTime);
+customElements.define('range-time', RangeTime);
 customElements.define('relative-time', RelativeTime);
 customElements.define('duration-time', DurationTime);
