@@ -7,7 +7,6 @@ import { ZDTDuration } from "./ZDTDuration.js";
 // npm: https://www.npmjs.com/package/datetime_global
 // github: https://github.com/DNSCond/Datetime-local
 "use strict"; // [^\x00-\x7F]
-const useOldJSON = Symbol('useOldJSON');
 const [writable, enumerable, configurable] = [true, true, true];
 /**
  * Constructs a Datetime_global instance or returns a string representation.
@@ -59,12 +58,15 @@ export const Datetime_global = function (from = undefined, timezoneId = Temporal
         isBigInt = true;
     }
     else if (from instanceof Datetime_global) {
-        timestamp = from.time.epochNanoseconds;
+        timestamp = from?.time?.epochNanoseconds ?? null;
         isBigInt = true;
     }
     else if (typeof from === 'bigint') {
         timestamp = from;
         isBigInt = true;
+    }
+    else if (from === null) {
+        timestamp = null;
     }
     else if (typeof from === 'string') {
         timestamp = Date.parse(from);
@@ -77,7 +79,11 @@ export const Datetime_global = function (from = undefined, timezoneId = Temporal
             return "Invalid Date";
         }
     }
-    const value = from instanceof Temporal.ZonedDateTime ? from : new Temporal.ZonedDateTime(BigInt(timestamp) * (isBigInt ? 1n : 1000000n), timezoneId);
+    else if (timestamp === null && new.target === undefined)
+        return "Invalid Date";
+    let value = null;
+    if (timestamp !== null)
+        value = from instanceof Temporal.ZonedDateTime ? from : new Temporal.ZonedDateTime(BigInt(timestamp) * (isBigInt ? 1n : 1000000n), timezoneId);
     const self = new.target ? this : Object.create(Datetime_global.prototype);
     Object.defineProperties(self, {
         time: { value, writable, enumerable, configurable, },
@@ -87,7 +93,7 @@ export const Datetime_global = function (from = undefined, timezoneId = Temporal
             }, enumerable, configurable,
         }, month: {
             get() {
-                return this.time.month;
+                return this.time?.month ?? NaN;
             }, enumerable, configurable,
         }, day: {
             get() {
@@ -95,7 +101,7 @@ export const Datetime_global = function (from = undefined, timezoneId = Temporal
             }, enumerable, configurable,
         }, dayOfWeek: {
             get() {
-                return this.time.dayOfWeek;
+                return this.time?.dayOfWeek ?? NaN;
             }, enumerable, configurable,
         }, hour: {
             get() {
@@ -111,23 +117,23 @@ export const Datetime_global = function (from = undefined, timezoneId = Temporal
             }, enumerable, configurable,
         }, millisecond: {
             get() {
-                return this.time.millisecond;
+                return this.time?.millisecond ?? NaN;
             }, enumerable, configurable,
         }, microsecond: {
             get() {
-                return this.time.microsecond;
+                return this.time?.microsecond ?? NaN;
             }, enumerable, configurable,
         }, nanosecond: {
             get() {
-                return this.time.nanosecond;
+                return this.time?.nanosecond ?? NaN;
             }, enumerable, configurable,
         }, epochMilliseconds: {
             get() {
-                return this.time.epochMilliseconds;
+                return this.time?.epochMilliseconds ?? NaN;
             }, enumerable, configurable,
         }, epochNanoseconds: {
             get() {
-                return this.time.epochNanoseconds;
+                return this.time?.epochNanoseconds ?? null;
             }, set(value) {
                 this.time = new Temporal.ZonedDateTime(BigInt(value), this.timezoneId);
             }, enumerable, configurable,
@@ -135,13 +141,13 @@ export const Datetime_global = function (from = undefined, timezoneId = Temporal
     });
     if (!new.target)
         return self.toString();
-    else
-        self.useOldJSON = true;
 };
 Object.defineProperties(Datetime_global.prototype, {
     minutesAfterMidnight: {
         get() {
             const { time } = this;
+            if (time === null)
+                return NaN;
             return time.startOfDay().until(time, {
                 smallestUnit: 'minutes',
                 largestUnit: 'minutes',
@@ -151,7 +157,10 @@ Object.defineProperties(Datetime_global.prototype, {
         }, enumerable, configurable,
     }, timezoneId: {
         get() {
-            return this.time.timeZoneId;
+            const time = this.validate();
+            if (time === null)
+                throw new RangeError('Datetime_global timezoneId requires to be valid');
+            return time.timeZoneId;
         }, set(value) {
             this.time = this.toTimezone(value).toTemporalZonedDateTime();
         }, enumerable, configurable,
@@ -166,23 +175,8 @@ Object.defineProperties(Datetime_global.prototype, {
             else
                 throw new TypeError('date must be set using a Date.');
         }, enumerable, configurable,
-    }, useOldJSON: {
-        get() {
-            return this[useOldJSON];
-        }, set(value) {
-            if (value === true || value === false) {
-                this[useOldJSON] = value;
-            }
-            else {
-                throw new TypeError('useOldJSON must be set using an explicit boolean');
-            }
-        }, enumerable, configurable,
     },
 });
-Datetime_global.prototype.setOldJSON = function (useOldJSON) {
-    this.useOldJSON = useOldJSON;
-    return this;
-};
 Datetime_global.compare = function (zonedDatetime1, zonedDatetime2) {
     zonedDatetime1 = new Datetime_global(zonedDatetime1, 'UTC');
     zonedDatetime2 = new Datetime_global(zonedDatetime2, 'UTC');
@@ -291,12 +285,22 @@ Datetime_global.zerons = function () {
 Datetime_global.parse = Date.parse;
 Datetime_global.prototype[Symbol.toStringTag] = 'Datetime_global';
 Datetime_global[Symbol.toStringTag] = 'Datetime_global_constructor';
+Datetime_global.prototype.validate = function () {
+    if (typeof this.time === 'object') {
+        if (!+(this.time instanceof Temporal.ZonedDateTime) || this.time === null)
+            throw new TypeError('Datetime_global.prototype.time must be null or a Temporal.ZonedDateTime');
+        return this.time;
+    }
+    else {
+        throw new TypeError('Datetime_global.prototype.time must be null or a Temporal.ZonedDateTime');
+    }
+};
 /**
  * converts this Datetime_global to Date
  * @returns {Date} the Date with millisecond precision. sub millisecond precision is lost
  */
 Datetime_global.prototype.toDate = function () {
-    return new Date(this.time.epochMilliseconds);
+    return new Date(this.time?.epochMilliseconds ?? NaN);
 };
 /**
  * Creates a new Datetime_global in the specified timezone, preserving the instant in time.
@@ -309,7 +313,10 @@ Datetime_global.prototype.toDate = function () {
  * // "Fri Apr 18 2025 09:00:00 UTC+0900 (Asia/Tokyo)"
  */
 Datetime_global.prototype.toTimezone = Datetime_global.prototype.withTimezone = function (timezoneId) {
-    return new Datetime_global(this.time.epochNanoseconds, timezoneId);
+    const time = this.validate();
+    if (time === null)
+        throw new RangeError('Datetime_global.prototype.toTimezone requires to be valid');
+    return new Datetime_global(time.epochNanoseconds, timezoneId);
 };
 /**
  * Retrieves the timezone identifier for this Datetime_global instance.
@@ -317,7 +324,10 @@ Datetime_global.prototype.toTimezone = Datetime_global.prototype.withTimezone = 
  * @returns {string} The timezone identifier (e.g., "America/New_York") associated with the Temporal.ZonedDateTime instance.
  */
 Datetime_global.prototype.getTimezoneId = function () {
-    return this.time.timeZoneId;
+    const time = this.validate();
+    if (time === null)
+        throw new RangeError('Datetime_global.prototype.getTimezoneId requires to be valid');
+    return time.timeZoneId;
 };
 /**
  * Returns the timestamp in milliseconds since the epoch (January 1, 1970, 00:00:00 UTC).
@@ -327,7 +337,8 @@ Datetime_global.prototype.getTimezoneId = function () {
  * console.log(dt.valueOf()); // 1745193600000
  */
 Datetime_global.prototype.valueOf = function () {
-    return this.time.epochMilliseconds;
+    const time = this.validate();
+    return time?.epochMilliseconds ?? NaN;
 };
 /**
  *
@@ -351,7 +362,13 @@ Datetime_global.prototype.getTime = function () {
  * console.log(dt.toISOString()); // "2025-04-18T00:00:00.000Z"
  */
 Datetime_global.prototype.setTime = function (timestamp) {
-    this.time = new Temporal.ZonedDateTime(BigInt(timestamp) * (((typeof timestamp) === 'bigint') ? 1n : 1000000n), this.time.timeZoneId);
+    const time = this.validate();
+    timestamp = toDateValue(timestamp);
+    if (!Number.isFinite(timestamp) || time === null) {
+        this.time = null;
+        return NaN;
+    }
+    this.time = new Temporal.ZonedDateTime(BigInt(timestamp) * 1000000n, time.timeZoneId);
     return this.time.epochMilliseconds;
 };
 /**
@@ -363,9 +380,12 @@ Datetime_global.prototype.setTime = function (timestamp) {
  * console.log(dt.toString()); // "Fri Apr 18 2025 00:00:00 UTC+0000 (UTC)"
  */
 Datetime_global.prototype.toString = function () {
-    const self = this, pad = (n, z = 2) => padNumber(n, z).replace(/^\+/, ''), fullYear = pad(self.time.withCalendar('iso8601').year, 4);
-    const offset = Datetime_global.getUTCOffset(self.getTimezoneOffset()), string = `${self.getDayName()} ${self.getMonthName()} ${pad(self.getDate())}`, time = `${pad(self.getHours())}:${pad(self.getMinutes())}:${pad(self.getSeconds())}`;
-    return `${string} ${fullYear} ${time} ${offset} (${self.time.timeZoneId})`;
+    const time = this.validate();
+    if (time === null)
+        return "Invalid";
+    const pad = (n, z = 2) => padNumber(n, z).replace(/^\+/, ''), fullYear = pad(time.withCalendar('iso8601').year, 4);
+    const offset = Datetime_global.getUTCOffset(this.getTimezoneOffset()), string = `${this.getDayName()} ${this.getMonthName()} ${pad(this.getDate())}`, timeStr = `${pad(this.getHours())}:${pad(this.getMinutes())}:${pad(this.getSeconds())}`;
+    return `${string} ${fullYear} ${timeStr} ${offset} (${this.timezoneId})`;
 };
 /**
  * Returns an HTML <time> element with the date-time in the browser's local timezone.
@@ -376,12 +396,15 @@ Datetime_global.prototype.toString = function () {
  * console.log(dt.toHTML()); // Depends on local timezone
  */
 Datetime_global.prototype.toHTML = function () {
-    const date = new Date(this.time.epochMilliseconds);
+    const date = new Date(this.validate()?.epochMilliseconds ?? NaN);
     return `<time datetime="${date.toISOString()}">${date}</time>`;
 };
 export function htmlencode(string) {
     return String(string).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 }
+/**
+ * @deprecated
+ */
 Datetime_global.prototype.toHTMLFormatted = function (dtg, format) {
     return `<time datetime="${dtg.toISOString()}">${htmlencode(dtg.format(format))}</time>`;
 };
@@ -407,13 +430,21 @@ const toHTMLFormatted = function(dtg, format) {
  * @returns {string} A string containing the `<time>` HTML element with GMT time.
  */
 Datetime_global.prototype.toHTML_GMT = function () {
-    const date = new Date(this.time.epochMilliseconds);
+    const date = new Date(this.validate()?.epochMilliseconds ?? NaN);
+    if (!isValid(date))
+        return `<span>Invalid Date</span>`;
     return `<time datetime="${date.toISOString()}">${date.toUTCString()}</time>`;
 };
 Datetime_global.prototype.toHTML_UTC = function () {
+    const date = new Date(this.validate()?.epochMilliseconds ?? NaN);
+    if (!isValid(date))
+        return `<span>Invalid Date</span>`;
     return `<time datetime="${this.toISOString()}">${this.toUTCString()}</time>`;
 };
 Datetime_global.prototype.toHTMLHistoryString = function () {
+    const date = new Date(this.validate()?.epochMilliseconds ?? NaN);
+    if (!isValid(date))
+        return `<span>Invalid Date</span>`;
     const options = { smallestUnit: 'seconds', largestUnit: 'years' }, historyString = this.until(new Date, options).toHumanString(2);
     return `<time datetime="${this.toISOString()}">${historyString}</time>`;
 };
@@ -427,7 +458,9 @@ Datetime_global.prototype.toHTMLHistoryString = function () {
  * // "<time datetime='2025-04-18T00:00:00.000Z'>Fri Apr 18 2025 00:00:00 UTC+0000 (UTC)</time>"
  */
 Datetime_global.prototype.toHTMLString = function () {
-    const date = new Date(this.time.epochMilliseconds);
+    const date = new Date(this.validate()?.epochMilliseconds ?? NaN);
+    if (!isValid(date))
+        return `<span>Invalid Date</span>`;
     return `<time datetime="${date.toISOString()}">${this.toString()}</time>`;
 };
 /**
@@ -440,14 +473,17 @@ Datetime_global.prototype.toHTMLString = function () {
  * console.log(dt.getDay()); // 5
  */
 Datetime_global.prototype.getDay = function () {
-    const time = this.time.withCalendar('iso8601');
+    const this_time = this.validate();
+    if (this_time === null)
+        return NaN;
+    const time = this_time.withCalendar('iso8601');
     return time.dayOfWeek % time.daysInWeek;
 };
 /**
  * returns the true day of week arcording to the specified calendar
  */
 Datetime_global.prototype.getDayOfWeek = function () {
-    return this.time.dayOfWeek;
+    return this.validate()?.dayOfWeek ?? NaN;
 };
 /**
  * Returns the year minus 1900 (e.g., 2025 -> 125) only iso8601 calendar.
@@ -457,7 +493,7 @@ Datetime_global.prototype.getDayOfWeek = function () {
  * console.log(dt.getYear()); // 125
  */
 Datetime_global.prototype.getYear = function () {
-    return this.time.withCalendar('iso8601').year - 1900;
+    return (this.validate()?.withCalendar('iso8601').year ?? NaN) - 1900;
 };
 /**
  * Returns the full four-digit year (e.g., 2025).
@@ -467,7 +503,7 @@ Datetime_global.prototype.getYear = function () {
  * console.log(dt.getFullYear()); // 2025
  */
 Datetime_global.prototype.getFullYear = function () {
-    return this.time.year;
+    return this.validate()?.year ?? NaN;
 };
 /**
  * Returns the month (0 = January, 1 = February, ..., 11 = December).
@@ -477,7 +513,7 @@ Datetime_global.prototype.getFullYear = function () {
  * console.log(dt.getMonth()); // 3
  */
 Datetime_global.prototype.getMonth = function () {
-    return this.time.month - 1;
+    return (this.validate()?.month ?? NaN) - 1;
 };
 /**
  * Returns the day of the month (1-31).
@@ -487,7 +523,7 @@ Datetime_global.prototype.getMonth = function () {
  * console.log(dt.getDate()); // 18
  */
 Datetime_global.prototype.getDate = function () {
-    return this.time.day;
+    return this.validate()?.day ?? NaN;
 };
 /**
  * Returns the hour (0-23).
@@ -497,7 +533,7 @@ Datetime_global.prototype.getDate = function () {
  * console.log(dt.getHours()); // 15
  */
 Datetime_global.prototype.getHours = function () {
-    return this.time.hour;
+    return this.validate()?.hour ?? NaN;
 };
 /**
  * Returns the minute (0-59).
@@ -507,7 +543,7 @@ Datetime_global.prototype.getHours = function () {
  * console.log(dt.getMinutes()); // 30
  */
 Datetime_global.prototype.getMinutes = function () {
-    return this.time.minute;
+    return this.validate()?.minute ?? NaN;
 };
 /**
  * Returns the second (0-59).
@@ -517,7 +553,7 @@ Datetime_global.prototype.getMinutes = function () {
  * console.log(dt.getSeconds()); // 45
  */
 Datetime_global.prototype.getSeconds = function () {
-    return this.time.second;
+    return this.validate()?.second ?? NaN;
 };
 /**
  * Returns the millisecond (0-999).
@@ -527,7 +563,7 @@ Datetime_global.prototype.getSeconds = function () {
  * console.log(dt.getMilliseconds()); // 123
  */
 Datetime_global.prototype.getMilliseconds = function () {
-    return this.time.millisecond;
+    return this.validate()?.millisecond ?? NaN;
 };
 // builtin-proxy-UTC
 /**
@@ -538,7 +574,7 @@ Datetime_global.prototype.getMilliseconds = function () {
  * console.log(dt.getUTCDay()); // 5
  */
 Datetime_global.prototype.getUTCDay = function () {
-    const date = new Date(this.time.epochMilliseconds);
+    const date = new Date(this.validate()?.epochMilliseconds ?? NaN);
     return date.getUTCDay();
 };
 /**
@@ -575,7 +611,7 @@ Datetime_global.prototype.getUTCFullYear = function () {
  * console.log(dt.getMonth()); // 3
  */
 Datetime_global.prototype.getUTCMonth = function () {
-    const date = new Date(this.time.epochMilliseconds);
+    const date = new Date(this.validate()?.epochMilliseconds ?? NaN);
     return date.getUTCMonth();
 };
 /**
@@ -588,7 +624,7 @@ Datetime_global.prototype.getUTCMonth = function () {
  * console.log(dt.getDate()); // 18
  */
 Datetime_global.prototype.getUTCDate = function () {
-    const date = new Date(this.time.epochMilliseconds);
+    const date = new Date(this.validate()?.epochMilliseconds ?? NaN);
     return date.getUTCDate();
 };
 /**
@@ -601,7 +637,7 @@ Datetime_global.prototype.getUTCDate = function () {
  * console.log(dt.getHours()); // 15
  */
 Datetime_global.prototype.getUTCHours = function () {
-    return (new Date(this.time.epochMilliseconds)).getUTCHours();
+    return new Date(this.validate()?.epochMilliseconds ?? NaN).getUTCHours();
 };
 /**
  * Returns the minute (0-59) in utc.
@@ -613,7 +649,7 @@ Datetime_global.prototype.getUTCHours = function () {
  * console.log(dt.getMinutes()); // 30
  */
 Datetime_global.prototype.getUTCMinutes = function () {
-    const date = new Date(this.time.epochMilliseconds);
+    const date = new Date(this.validate()?.epochMilliseconds ?? NaN);
     return date.getUTCMinutes();
 };
 /**
@@ -626,7 +662,7 @@ Datetime_global.prototype.getUTCMinutes = function () {
  * console.log(dt.getSeconds()); // 45
  */
 Datetime_global.prototype.getUTCSeconds = function () {
-    const date = new Date(this.time.epochMilliseconds);
+    const date = new Date(this.validate()?.epochMilliseconds ?? NaN);
     return date.getUTCSeconds();
 };
 /**
@@ -639,7 +675,7 @@ Datetime_global.prototype.getUTCSeconds = function () {
  * console.log(dt.getMilliseconds()); // 123
  */
 Datetime_global.prototype.getUTCMilliseconds = function () {
-    const date = new Date(this.time.epochMilliseconds);
+    const date = new Date(this.validate()?.epochMilliseconds ?? NaN);
     return date.getUTCMilliseconds();
 };
 /**
@@ -650,7 +686,10 @@ Datetime_global.prototype.getUTCMilliseconds = function () {
  * console.log(dt.getTimezoneOffset()); // 240 (4 hours west)
  */
 Datetime_global.prototype.getTimezoneOffset = function () {
-    return -Math.trunc((Number(this.time.offsetNanoseconds) / 1e9) / 60);
+    const this_time = this.validate();
+    if (this_time === null)
+        return NaN;
+    return -Math.trunc((Number(this_time.offsetNanoseconds) / 1e9) / 60);
 };
 /**
  * Returns the date-time as an ISO 8601 string in UTC (e.g., "2025-04-18T12:34:56.789Z").
@@ -668,9 +707,7 @@ Datetime_global.prototype.toISOString = function () {
  * console.log(dt.toJSON()); // "2025-04-18T00:00:00+00:00[UTC]"
  */
 Datetime_global.prototype.toJSON = function () {
-    if (this[useOldJSON] === true)
-        return this.toDate().toJSON();
-    return this.time.toJSON();
+    return this.toISOString();
 };
 /**
  * Sets the year, optionally month and day, modifying the instance in place.
@@ -686,15 +723,20 @@ Datetime_global.prototype.toJSON = function () {
  * console.log(dt.toISOString()); // "2026-04-18T00:00:00.000Z"
  */
 Datetime_global.prototype.setFullYear = function (fullYear, month, date) {
-    date = arguments.length > 1 ? date : this.time.day;
-    month = arguments.length > 2 ? month : this.time.month;
+    const this_time = this.validate();
+    date = (((arguments.length > 1 ? date : this_time?.day))) ?? NaN;
+    month = (arguments.length > 2 ? month : this_time?.month) ?? NaN;
+    if (NaNInArray([toDateValue(this_time?.epochMilliseconds), date, month]) || this_time === null) {
+        this.time = null;
+        return NaN;
+    }
     const year = fullYear, try_date = {
         year: toNumber(year), day: toNumber(date), month: toNumber(month) + 1,
     }, self_time = overflowDatetime_global(this, try_date);
     return (this.time = self_time).epochMilliseconds;
 };
 function toNumber(mixed) {
-    return Number(BigInt(Number(mixed)));
+    return toDateValue(mixed);
 }
 /**
  * Sets the month, optionally day, modifying the instance in place.
@@ -739,9 +781,18 @@ Datetime_global.prototype.setDate = function (date) {
  * @throws TypeError if inputs are non-numeric.
  */
 Datetime_global.prototype.setHours = function (hours, minutes, seconds, milliseconds) {
-    minutes = arguments.length > 1 ? minutes : this.time.minute;
-    seconds = arguments.length > 2 ? seconds : this.time.second;
-    milliseconds = arguments.length > 3 ? milliseconds : this.time.millisecond;
+    const this_time = this.validate();
+    if (!Number.isFinite(toDateValue(this_time?.epochMilliseconds)) || this_time === null) {
+        this.time = null;
+        return NaN;
+    }
+    minutes = arguments.length > 1 ? minutes : this_time.minute;
+    seconds = arguments.length > 2 ? seconds : this_time.second;
+    milliseconds = arguments.length > 3 ? milliseconds : this_time.millisecond;
+    if (NaNInArray([hours, minutes, seconds, milliseconds]) || this_time === null) {
+        this.time = null;
+        return NaN;
+    }
     const try_time = {
         hour: toNumber(hours),
         minute: toNumber(minutes),
@@ -814,11 +865,25 @@ Datetime_global.prototype.setMilliseconds = function (milliseconds) {
  * console.log(dt.toISOString()); // "2026-04-18T00:00:00.000Z"
  */
 Datetime_global.prototype.setUTCFullYear = function (fullYear, month, date) {
-    const nanosecond = BigInt(this.time.nanosecond), microsecond = BigInt(this.time.microsecond) * 1000n, datetime = new Date(this.time.epochMilliseconds);
+    const this_time = this.validate();
+    if (!Number.isFinite(toDateValue(this_time?.epochMilliseconds)) || this_time === null) {
+        this.time = null;
+        return NaN;
+    }
+    const nanosecond = BigInt(this_time.nanosecond), microsecond = BigInt(this_time.microsecond) * 1000n, datetime = new Date(this_time.epochMilliseconds);
     month = arguments.length > 1 ? month : datetime.getUTCMonth();
     date = arguments.length > 2 ? date : datetime.getUTCDate();
-    const returnValue = BigInt(datetime.setUTCFullYear(fullYear, month, date));
-    this.time = new Temporal.ZonedDateTime(((returnValue * 1000000n) + microsecond + nanosecond), this.time.timeZoneId);
+    if (NaNInArray([month, date])) {
+        this.time = null;
+        return NaN;
+    }
+    const rtV = toDateValue(datetime.setUTCFullYear(fullYear, month, date));
+    if (isNaN(rtV)) {
+        this.time = null;
+        return NaN;
+    }
+    const returnValue = BigInt(rtV);
+    this.time = new Temporal.ZonedDateTime(((returnValue * 1000000n) + microsecond + nanosecond), this.timezoneId);
     return Number(returnValue);
 };
 /**
@@ -838,12 +903,26 @@ Datetime_global.prototype.setUTCFullYear = function (fullYear, month, date) {
  * console.log(dt.toISOString()); // "2025-04-18T15:00:00.000Z"
  */
 Datetime_global.prototype.setUTCHours = function (hours, minutes, seconds, milliseconds) {
-    const nanosecond = BigInt(this.time.nanosecond), microsecond = BigInt(this.time.microsecond) * 1000n, date = new Date(this.time.epochMilliseconds);
+    const this_time = this.validate();
+    if (!Number.isFinite(toDateValue(this_time?.epochMilliseconds)) || this_time === null) {
+        this.time = null;
+        return NaN;
+    }
+    const nanosecond = BigInt(this_time.nanosecond), microsecond = BigInt(this_time.microsecond) * 1000n, date = new Date(this_time.epochMilliseconds);
     minutes = arguments.length > 1 ? minutes : date.getUTCMinutes();
     seconds = arguments.length > 2 ? seconds : date.getUTCSeconds();
     milliseconds = arguments.length > 3 ? milliseconds : date.getUTCMilliseconds();
-    const returnValue = BigInt(date.setUTCHours(hours, minutes, seconds, milliseconds));
-    this.time = new Temporal.ZonedDateTime(((returnValue * 1000000n) + microsecond + nanosecond), this.time.timeZoneId);
+    if (NaNInArray([minutes, seconds, seconds])) {
+        this.time = null;
+        return NaN;
+    }
+    const rtV = toDateValue(date.setUTCHours(hours, minutes, seconds, milliseconds));
+    if (isNaN(rtV)) {
+        this.time = null;
+        return NaN;
+    }
+    const returnValue = BigInt(rtV);
+    this.time = new Temporal.ZonedDateTime(((returnValue * 1000000n) + microsecond + nanosecond), this.timezoneId);
     return Number(returnValue);
 };
 /**
@@ -891,7 +970,10 @@ Datetime_global.prototype.setUTCSeconds = function (seconds, milliseconds) {
  * // "2025-04-18T00:00:00+00:00[UTC]"
  */
 Datetime_global.prototype.toTemporalZonedDateTime = function () {
-    return this.time;
+    const zdt = this.validate();
+    if (zdt === null)
+        throw new RangeError('Datetime_global.prototype.toTemporalZonedDateTime requires the datetime to be valid');
+    return zdt;
 };
 // custom
 /**
@@ -907,7 +989,9 @@ Datetime_global.prototype.toTemporalZonedDateTime = function () {
  * console.log(dt.getNanoseconds()); // 500n
  */
 Datetime_global.prototype.setNanoseconds = function (nanoseconds = 0n, microseconds) {
-    const self_time = this.time, did_specify_microseconds = arguments.length > 1;
+    const self_time = this.validate(), did_specify_microseconds = arguments.length > 1;
+    if (self_time === null)
+        throw new TypeError('cannot set nanoseconds on invalid object');
     microseconds = BigInt(did_specify_microseconds ? (microseconds ?? 0) : self_time.microsecond);
     return BigInt((this.time = new Temporal.ZonedDateTime(self_time.with({
         microsecond: did_specify_microseconds ? 0 : self_time.microsecond,
@@ -922,7 +1006,10 @@ Datetime_global.prototype.setNanoseconds = function (nanoseconds = 0n, microseco
  * console.log(dt.getNanoseconds()); // 500n
  */
 Datetime_global.prototype.getUTCNanoseconds = Datetime_global.prototype.getNanoseconds = function () {
-    return (BigInt(this.time.microsecond) * 1000n) + BigInt(this.time.nanosecond);
+    const this_time = this.validate();
+    if (this_time === null)
+        throw new TypeError('cannot get nanoseconds on invalid object');
+    return (BigInt(this_time.microsecond) * 1000n) + BigInt(this_time.nanosecond);
 };
 /**
  * Formats a timezone offset in minutes as a UTC string (e.g., "UTC+0000").
@@ -933,7 +1020,7 @@ Datetime_global.prototype.getUTCNanoseconds = Datetime_global.prototype.getNanos
  */
 Datetime_global.getUTCOffset = function (offset) {
     if (isNaN(offset))
-        return 'UTC+Error';
+        return 'UTC+0000';
     const sign = offset > 0 ? "-" : "+", absOffset = Math.abs(offset);
     const pad = (n) => padNumber(n).replace(/^\+/, '');
     const hours = pad(Math.trunc(absOffset / 60));
@@ -1091,7 +1178,7 @@ Datetime_global.prototype.getFullMonthName = function () {
  * @param options
  */
 Datetime_global.prototype.toLocaleString = function (locales, options) {
-    return this.time.toLocaleString(locales, options);
+    return this.time?.toLocaleString(locales, options) ?? "Invalid Date";
 };
 /**
  * Converts the internal datetime value to a GMT (UTC) string representation.
@@ -1164,37 +1251,14 @@ Datetime_global.prototype.toTimeString = function () {
  * @see https://www.php.net/manual/en/datetime.format.php for placeholder details.
  */
 Datetime_global.prototype.format = function (pattern) {
-    const string = pattern ?? '';
-    //(new this.constructor(this, this?.time?.timeZoneId))
+    const string = pattern ?? '', this_time = this.validate();
+    if (this_time === null)
+        return "[Invalid Date]";
     const datetime_local = this.withCalender(), pad = (n, z = 2) => padNumber(n, z).replace(/^\+/, '');
     const hour24 = pad(datetime_local.getHours()), dayName = datetime_local.getDayName();
-    const iso8601 = datetime_local, dayNameFull = datetime_local.getFullDayName();
-    const dayNumberMonth = pad(datetime_local.getDayNumberMonth()), N = iso8601.time.dayOfWeek.toString(), //iso8601.time.dayOfWeek
-    W = iso8601.time?.weekOfYear?.toString() ?? 'undefined', w = iso8601.getDay().toString(), z = iso8601.time.daysInYear.toString(), m = pad(datetime_local.getMonth() + 1), M = datetime_local.getMonthName(), F = datetime_local.getFullMonthName(), hour12 = pad(+hour24 === 0 ? 12 : +hour24), dayInMonth = datetime_local.time.daysInMonth.toString(), leap = datetime_local.time.inLeapYear ? '1' : '0', X = pad(datetime_local.getFullYear(), 4), getYear = pad(datetime_local.getYear(), 2), minutes = pad(datetime_local.getMinutes()), seconds = pad(datetime_local.getSeconds()), datetime_timezone = datetime_local.time.timeZoneId, offset = Datetime_global.getUTCOffset(datetime_local.getTimezoneOffset()).replace(/UTC/, ''), currentDate = datetime_local.toDate(), B = toSwatchInternetTime(currentDate), microseconds = `${pad(datetime_local.getMilliseconds(), 3)}${pad(datetime_local.time.microsecond, 3)}`, milliseconds = pad(datetime_local.getMilliseconds(), 3);
-    return String(string).replace(/\[[a-zA-Z0-9\-_]+]/g, function (substring) {
-        const f = substring.toLowerCase(), each = { innerText: f };
-        if (/^\[[a-zA-Z0-9\-_]+]$/i.test(f)) {
-            switch (f) {
-                case "[offsetfromnow]":
-                    each.innerText = noFormat(formatOffsetFromNow(currentDate));
-                    break;
-                case "[datev1]":
-                    each.innerText = 'D M d Y H:i:s \\U\\T\\CO (e)';
-                    break;
-                case '[HeaderDefault]':
-                    each.innerText = 'D, d M Y H:i:s O (e)';
-                    break;
-                case '[toMYSQLi]':
-                    each.innerText = 'Y-m-d H:i:s';
-                    break;
-                case '[B]':
-                    each.innerText = 'D, @B (Y-m-d H:i:s)';
-                    break;
-                default:
-            }
-        }
-        return each.innerText;
-    }).replace(/\\*[a-zA-Z]/ig, function (substring) {
+    const dayNameFull = datetime_local.getFullDayName();
+    const dayNumberMonth = pad(datetime_local.getDayNumberMonth()), N = this_time.dayOfWeek.toString(), W = this_time?.weekOfYear?.toString() ?? 'undefined', w = datetime_local.getDay().toString(), z = this_time.daysInYear.toString(), m = pad(datetime_local.getMonth() + 1), M = datetime_local.getMonthName(), F = datetime_local.getFullMonthName(), hour12 = pad(+hour24 === 0 ? 12 : +hour24), dayInMonth = this_time.daysInMonth.toString(), leap = this_time.inLeapYear ? '1' : '0', X = pad(datetime_local.getFullYear(), 4), getYear = pad(datetime_local.getYear(), 2), minutes = pad(datetime_local.getMinutes()), seconds = pad(datetime_local.getSeconds()), datetime_timezone = this_time.timeZoneId, offset = Datetime_global.getUTCOffset(datetime_local.getTimezoneOffset()).replace(/UTC/, ''), currentDate = datetime_local.toDate(), B = toSwatchInternetTime(currentDate), microseconds = `${pad(datetime_local.getMilliseconds(), 3)}${pad(this_time.microsecond, 3)}`, milliseconds = pad(datetime_local.getMilliseconds(), 3);
+    return String(string).replace(/\\*[a-zA-Z]/ig, function (substring) {
         const strxx = substring.replace(/\\\\/g, '\\').slice(-1);
         if (substring.length % 2 !== 0) {
             const strx = strxx.replace(/[^\\]/g, ''), charxater = substring.replace(/\\/g, '');
@@ -1288,6 +1352,10 @@ function addSignToNumber(n, chunk = true) {
     const strx = String((chunk ? underscoreNumber : BigInt)(n));
     return strx.startsWith('-') ? strx : `+${strx}`;
 }
+/**
+ * @deprecated
+ * @param string
+ */
 export const noFormat = function (string) {
     return String(string).replace(/[a-zA-Z]/g, '\\$&');
 };
@@ -1375,7 +1443,7 @@ Datetime_global.prototype.templateFormat = function (strings, ...expressions) {
                         exp = exp.toString();
                         // the conditions `exp === Datetime_global`, `exp === globalThis.Date`,
                         // `globalThis.Date.now` and `exp === globalThis?.Temporal?.Now && exp === Temporal?.Now`
-                        // arent expected to be true, but still
+                        // aren't expected to be true, but still
                         // @ts-expect-error
                     }
                     else if (exp === globalThis?.Temporal?.Now && exp === Temporal?.Now) {
@@ -1494,7 +1562,10 @@ export const toSwatchInternetTime = function (date) {
  * @param calender defaults to "iso8601"
  */
 Datetime_global.prototype.withCalender = function (calender = "iso8601") {
-    const datetime_global = new Datetime_global(this.time.epochNanoseconds, this.time.timeZoneId);
+    const this_time = this.validate();
+    if (this_time === null)
+        throw new RangeError('Datetime_global withCalender requires to be valid');
+    const datetime_global = new Datetime_global(this_time.epochNanoseconds, this_time.timeZoneId);
     datetime_global.time = datetime_global.time.withCalendar(calender);
     return datetime_global;
 };
@@ -1517,8 +1588,10 @@ Datetime_global.prototype.clone = function () {
  * dt.startOfDay().toISOString(); // "2025-04-18T00:00:00.000Z"
  */
 Datetime_global.prototype.startOfDay = function (timezone) {
-    const zdt = (timezone ? this.toTimezone(timezone) : this).time.startOfDay().epochNanoseconds;
-    return new Datetime_global(zdt, this.time.timeZoneId);
+    const this_time = (timezone ? this.toTimezone(timezone) : this).validate();
+    if (this_time === null)
+        throw new RangeError('Datetime_global startOfDay requires to be valid');
+    return new Datetime_global(this_time.startOfDay().epochNanoseconds, this.time.timeZoneId);
 };
 /**
  * Retrieves the timestamp for this Datetime_global instance.
@@ -1526,7 +1599,10 @@ Datetime_global.prototype.startOfDay = function (timezone) {
  * @returns {bigint} The timestamp associated with the Temporal.ZonedDateTime instance.
  */
 Datetime_global.prototype.getTimestamp = function () {
-    return this.time.epochNanoseconds;
+    const this_time = this.validate();
+    if (this_time === null)
+        throw new RangeError('Datetime_global getTimestamp requires to be valid');
+    return this_time.epochNanoseconds;
 };
 export const ordinalSuffix = function (value) {
     const $number = Number(BigInt(value)) % 100;
@@ -1556,20 +1632,27 @@ export const ordinalSuffix = function (value) {
  * undocumented, can change any version
  * @param other
  * @param options
+ * @deorecated will be added as soon as Temporal reaches stage 4 and typescript adds support
  */
 Datetime_global.prototype.until = function (other, options) {
-    const zdt = new Datetime_global(other, this.getTimezoneId());
+    const zdt = new Datetime_global(other, this.getTimezoneId()); // @ts-ignore
     return new ZDTDuration(this.time.until(zdt.toTemporalZonedDateTime(), options));
 };
 /**
  * undocumented, can change any version
  * @param other
  * @param options
+ * @deorecated will be added as soon as Temporal reaches stage 4 and typescript adds support
  */
 Datetime_global.prototype.since = function (other, options) {
-    const zdt = new Datetime_global(other, this.getTimezoneId());
+    const zdt = new Datetime_global(other, this.getTimezoneId()); // @ts-ignore
     return new ZDTDuration(this.time.since(zdt.toTemporalZonedDateTime(), options));
 };
+/**
+ * @deprecated
+ * @param o
+ * @param preference
+ */
 function toPrimitive(o, preference) {
     preference = ["number", "string", "default"].includes(preference) ? preference : "default";
     if (typeof o === "object" || typeof o === "function") {
@@ -1595,6 +1678,11 @@ function toPrimitive(o, preference) {
     }
     throw new TypeError('that could not be converted to Primitive');
 }
+/**
+ * @deprecated
+ * @param value
+ * @param type
+ */
 export function toNumeric(value, type = null) {
     // Handle object conversion
     value = toPrimitive(value, "number");
@@ -1657,7 +1745,9 @@ export function toNumeric(value, type = null) {
  */
 export function overflowDatetime_global(zonedDateTime, overflow_overwrite) {
     // Extract the ZonedDateTime object
-    const self_time = zonedDateTime.time;
+    const self_time = Datetime_global.prototype.validate.call(zonedDateTime);
+    if (self_time === null)
+        throw new TypeError('Datetime_global.prototype.validate.call');
     // Prepare the fields with defaults from self_time
     const try_time = {
         year: overflow_overwrite.year ?? self_time.year,
@@ -1709,4 +1799,26 @@ export function padNumber(number, zeros = 2) {
         number = -number;
     }
     return (negative ? '-' : '+') + String(number).padStart(zeros, "0");
+}
+function isValid(date) {
+    return !isNaN(date);
+}
+function toDateValue(value) {
+    value = +value;
+    if (Number.isFinite(value)) {
+        const max = 8.64e15, dateValue = Math.trunc(value);
+        if (dateValue > max || dateValue < -max) {
+            return NaN;
+        }
+        else if (dateValue === 0) {
+            return +0;
+        }
+        else
+            return dateValue;
+    }
+    else
+        return NaN;
+}
+function NaNInArray(array) {
+    return Array.from(array).some(n => Number.isNaN(n));
 }

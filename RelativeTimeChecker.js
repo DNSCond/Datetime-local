@@ -1,5 +1,6 @@
 import { Temporal } from "temporal-polyfill";
 import { Datetime_global } from "./Datetime_global.js";
+import { Timer } from "./EventTimer.js";
 // TimeElement, DT_HTML_Formatter, ClockTime, and RelativeTime
 function setDatetime(datetime, element, setAttribute = true) {
     let attribute;
@@ -105,37 +106,21 @@ export class TimeElement extends HTMLElement {
     get zonedDateTime() {
         return this.datetime_global?.toTemporalZonedDateTime() ?? null;
     }
-}
-/**
- * for inheritance only
- */
-export class DT_HTML_Formatter extends TimeElement {
-    #callback = undefined;
-    formatDT(defaultFormatter) {
-        const zdt = this.datetime_global;
-        if (zdt === null)
-            return "Invalid Date";
-        const callback = this.#callback;
-        const result = Function.prototype.call.call(callback ?? defaultFormatter ??
-            (m => String(m)), zdt, zdt, this);
-        if (typeof result === 'string')
-            return result;
-        else {
-            throw new TypeError('the callback did not return a string');
-        }
-    }
-    set formatCallback(value) {
-        if (value === undefined)
-            this.#callback = undefined;
-        else if (typeof value === 'function') {
-            this.#callback = value;
+    _requestDTFormat(onGranted, putContent) {
+        const { datetime_global } = this;
+        if (datetime_global && !isNaN(datetime_global)) {
+            const detail = { datetime_global, putContent };
+            const event = new CustomEvent('format-datetime', {
+                bubbles: true, cancelable: true, composed: false, detail,
+            });
+            const continueDefault = this.dispatchEvent(event);
+            if (continueDefault) {
+                onGranted(datetime_global);
+            }
         }
         else {
-            throw new TypeError('your provided formatCallback wasnt a function.');
+            putContent('Invalid Date');
         }
-    }
-    get formatCallback() {
-        return this.#callback;
     }
 }
 /**
@@ -149,7 +134,7 @@ export class DT_HTML_Formatter extends TimeElement {
  * Example usage:
  *   <clock-time datetime="2025-06-12T12:00:00Z" format="Y-m-d H:i" timezone="UTC"></clock-time>
  */
-export class ClockTime extends DT_HTML_Formatter {
+export class ClockTime extends TimeElement {
     /**
      * Returns the list of attributes to observe for changes.
      * @returns {string[]}
@@ -183,10 +168,18 @@ export class ClockTime extends DT_HTML_Formatter {
     updateTime() {
         const format = this.getAttribute('format') ?? Datetime_global.FORMAT_DATETIME_GLOBALV3;
         try {
-            const textContent = this.formatDT(zdt => zdt.format(format)), dateTime = this.dateTime?.toISOString();
-            if (dateTime === undefined)
-                return;
-            this.innerHTML = Object.assign(document.createElement('time'), { textContent, dateTime }).outerHTML;
+            this._requestDTFormat((dtg) => {
+                if ((dtg ?? undefined) === undefined)
+                    throw new TypeError;
+                const dateTime = dtg?.toISOString(), textContent = dtg?.format(format);
+                const time = Object.assign(document.createElement('time'), { textContent, dateTime });
+                this.replaceChildren(time);
+            }, (textContent) => {
+                textContent = `${textContent}`;
+                const dateTime = this.dateTime?.toISOString();
+                const time = Object.assign(document.createElement('time'), { textContent, dateTime });
+                this.replaceChildren(time);
+            });
         }
         catch (error) {
             this.textContent = "Invalid Date";
@@ -203,12 +196,13 @@ export class ClockTime extends DT_HTML_Formatter {
  * Example usage:
  *   <relative-time datetime="2025-06-12T12:00:00Z"></relative-time>
  */
-export class RelativeTime extends DT_HTML_Formatter {
+export class RelativeTime extends TimeElement {
     /**
      * @private
      * @type {null|number}
      */
     _timer;
+    innerTimeElement;
     /**
      * Returns the list of attributes to observe for changes.
      * @returns {string[]}
@@ -221,8 +215,6 @@ export class RelativeTime extends DT_HTML_Formatter {
      */
     constructor() {
         super();
-        this.setAttribute('role', 'time');
-        this.setAttribute('aria-live', 'polite');
         this._timer = null;
     }
     /**
@@ -233,6 +225,9 @@ export class RelativeTime extends DT_HTML_Formatter {
     connectedCallback() {
         this.updateTime();
         this.scheduleNextUpdate();
+        this.append(this.getTimeElement());
+        this.setAttribute('role', 'time');
+        this.setAttribute('aria-live', 'polite');
     }
     /**
      * Called when the element is removed from the DOM.
@@ -240,7 +235,21 @@ export class RelativeTime extends DT_HTML_Formatter {
      * @returns {void}
      */
     disconnectedCallback() {
+        this.innerHTML = '';
         this.clearTimer();
+    }
+    getTimeElement(date) {
+        if (this.innerTimeElement instanceof HTMLTimeElement) {
+            if (date)
+                this.innerTimeElement.dateTime = date.toISOString();
+            return this.innerTimeElement;
+        }
+        this.innerHTML = '';
+        const html = this.innerTimeElement = document.createElement('time');
+        if (date)
+            this.innerTimeElement.dateTime = date.toISOString();
+        this.append(html);
+        return html;
     }
     /**
      * Called when an observed attribute changes.
@@ -270,20 +279,27 @@ export class RelativeTime extends DT_HTML_Formatter {
     updateTime() {
         const self = this;
         try {
-            this.textContent = this.formatDT(function (zdt) {
-                const precision = self.getAttribute('precision');
-                if (precision === 'modern') {
-                    const duration = self.getDuration();
-                    if (duration) {
-                        const value = toHumanString(duration, 2), format = function (value) {
-                            if (duration.sign < 0)
-                                return `in ${value}`;
-                            return `${value} ago`;
-                        };
-                        return format(value);
+            this._requestDTFormat((dtg) => {
+                const textContent = (function (zdt) {
+                    const precision = self.getAttribute('precision');
+                    if (precision === 'modern') {
+                        const duration = self.getDuration();
+                        if (duration) {
+                            const value = toHumanString(duration, 2), format = function (value) {
+                                if (duration.sign < 0)
+                                    return `in ${value}`;
+                                return `${value} ago`;
+                            };
+                            return format(value);
+                        }
                     }
-                }
-                return self.getRelativeTime(zdt.toDate());
+                    return self.getRelativeTime(zdt.toDate());
+                })(dtg);
+                Object.assign(this.getTimeElement(this.dateTime), { textContent });
+            }, (textContent) => {
+                textContent = `${textContent}`;
+                const time = Object.assign(this.getTimeElement(this.dateTime), { textContent });
+                this.replaceChildren(time);
             });
         }
         catch (error) {
@@ -474,103 +490,35 @@ export function toHumanString(self, units) {
     const popped = constructed.pop();
     return `${constructed}, and${popped}`.replace(/^\s+/, '');
 }
-/**
- * @deprecated
- */
-class RangeTime extends TimeElement {
-    /**
-     * Returns the list of attributes to observe for changes.
-     * @returns {string[]}
-     */
-    static get observedAttributes() {
-        return ['start', 'end', 'format', 'timezone', 'show-duration', 'separator'];
-    }
-    /**
-     * Constructs a ClockTime element and sets the ARIA role to "time".
-     */
-    constructor() {
-        super();
-        this.setAttribute('role', 'time');
-    }
-    /**
-     * Called when the element is inserted into the DOM.
-     * Triggers an initial update of the displayed time.
-     * @returns {void}
-     */
-    connectedCallback() {
-        this.updateTime();
-    }
-    /**
-     * Called when an observed attribute changes.
-     * @param {string} _name - The name of the attribute.
-     * @param {string|null} _oldValue - The old value of the attribute.
-     * @param {string|null} _newValue - The new value of the attribute.
-     * @returns {void}
-     */
-    attributeChangedCallback(_name, _oldValue, _newValue) {
-        this.updateTime();
-    }
-    set start(newValue) {
-        const datetime = setDatetime(newValue, this);
-        if (datetime)
-            this.setAttribute('start', datetime);
-    }
-    get start() {
-        const start = this.getAttribute('start');
-        return start ? new Date(start) : null;
-    }
-    set end(newValue) {
-        const datetime = setDatetime(newValue, this, false);
-        if (datetime)
-            this.setAttribute('end', datetime);
-    }
-    get end() {
-        const end = this.getAttribute('end');
-        return end ? new Date(end) : null;
-    }
-    get end_datetime_global() {
-        const datetime = this.getAttribute('end');
-        const timezone = this.getAttribute('timezone');
-        if (datetime === null)
-            return null;
-        if (timezone === 'local') {
-            return new Datetime_global(datetime, Datetime_global.hostLocalTimezone());
-        }
-        else {
-            return new Datetime_global(datetime, timezone ?? 'UTC');
-        }
-    }
-    set showDuration(newValue) {
-        if (newValue === null) {
-            this.removeAttribute('show-duration');
-        }
-        else if (!newValue) {
-            this.removeAttribute('show-duration');
-        }
-        else {
-            this.setAttribute('show-duration', '');
-        }
-    }
-    get showDuration() {
-        return this.hasAttribute('show-duration');
-    }
-    updateTime() {
-        const start = this.datetime_global;
-        const end = this.end_datetime_global;
-        if (start === null || end === null)
-            return void (this.textContent = 'Invalid time range');
-        const sameDay = start.startOfDay().getTimestamp() === end.startOfDay().getTimestamp();
-        let format = 'H:i', output = sameDay
-            ? `${start.format('Y-m-d ' + format)}-${end.format(format)}` // Compact format for same day
-            : `${start.format('Y-m-d ' + format)}-${end.format('Y-m-d ' + format)}`;
-        if (this.showDuration) {
-            const duration = start.toTemporalZonedDateTime().until(end.toTemporalZonedDateTime(), { largestUnit: 'hours' });
-            output += ` (${toHumanString(duration)})`;
-        }
-        this.textContent = output;
-    }
-}
 customElements.define('clock-time', ClockTime);
-customElements.define('range-time', RangeTime);
 customElements.define('relative-time', RelativeTime);
 customElements.define('duration-time', DurationTime);
+const timer = new Timer();
+class RelativeClockTimer {
+    eventId;
+    #timer = timer;
+    constructor(id) {
+        const [writable, enumerable, configurable] = [false, true, false];
+        this.eventId = `globalTimer#${id}`;
+        const value = this.#timer;
+        Object.defineProperties(this, {
+            eventId: {
+                value: `globalTimer#${id}`,
+                writable, enumerable,
+                configurable,
+            },
+        });
+        if (value.hasTimerByName(this.eventId))
+            value.addEventListener(this.eventId, (event) => void this.fired(event));
+        value.createTimer(this.eventId, 250);
+    }
+    fired(event) {
+        document.querySelectorAll('relative-time').forEach(each => {
+            const eventId = 'relative-clock-timer-update';
+            const detail = event.detail.date;
+            each.dispatchEvent(new CustomEvent(eventId, {
+                bubbles: true, cancelable: false, composed: false, detail,
+            }));
+        });
+    }
+}
