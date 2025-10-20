@@ -1,6 +1,6 @@
 import {Temporal} from "temporal-polyfill";
 import {Datetime_global} from "./Datetime_global.js";
-import {Timer} from "./EventTimer.js";
+// import {Timer} from "./EventTimer.js";
 
 // TimeElement, DT_HTML_Formatter, ClockTime, and RelativeTime
 
@@ -499,36 +499,36 @@ customElements.define('clock-time', ClockTime);
 customElements.define('relative-time', RelativeTime);
 customElements.define('duration-time', DurationTime);
 
-const timer = new Timer();
+// const timer = new Timer();
 
-class RelativeClockTimer {
-    private readonly eventId: string;
-    #timer = timer;
-
-    constructor(id: string) {
-        const [writable, enumerable, configurable] = [false, true, false];
-        this.eventId = `globalTimer#${id}`;
-        const value = this.#timer;
-        Object.defineProperties(this, {
-            eventId: {
-                value: `globalTimer#${id}`,
-                writable, enumerable,
-                configurable,
-            },
-        });
-        if (value.hasTimerByName(this.eventId))
-            value.addEventListener(this.eventId, (event) => void this.fired(event));
-        value.createTimer(this.eventId, 250);
-    }
-
-    private fired(event: any) {
-        document.querySelectorAll('relative-time').forEach(each => {
-            const eventId = 'relative-clock-timer-update';
-            const detail = event.detail.date;
-            each.dispatchEvent(new CustomEvent(eventId, {
-                    bubbles: true, cancelable: false, composed: false, detail,
-                }),
-            );
-        });
-    }
-}
+// class RelativeClockTimer {
+//     private readonly eventId: string;
+//     #timer = timer;
+//
+//     constructor(id: string) {
+//         const [writable, enumerable, configurable] = [false, true, false];
+//         this.eventId = `globalTimer#${id}`;
+//         const value = this.#timer;
+//         Object.defineProperties(this, {
+//             eventId: {
+//                 value: `globalTimer#${id}`,
+//                 writable, enumerable,
+//                 configurable,
+//             },
+//         });
+//         if (value.hasTimerByName(this.eventId))
+//             value.addEventListener(this.eventId, (event: unknown) => void this.fired(event));
+//         value.createTimer(this.eventId, 250);
+//     }
+//
+//     private fired(event: any) {
+//         document.querySelectorAll('relative-time').forEach(each => {
+//             const eventId = 'relative-clock-timer-update';
+//             const detail = event.detail.date;
+//             each.dispatchEvent(new CustomEvent(eventId, {
+//                     bubbles: true, cancelable: false, composed: false, detail,
+//                 }),
+//             );
+//         });
+//     }
+// }

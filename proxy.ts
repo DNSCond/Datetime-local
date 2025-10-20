@@ -4,6 +4,7 @@ export type ConcreteClass = new (...args: any) => object;
 export type HasStaticWithoutNew<C extends ConcreteClass> = {
     withoutNew(this: C, ...args: any[]): InstanceType<C> | unknown;
 };
+
 export type CallableConstructor<C extends ConcreteClass & HasStaticWithoutNew<C>,
 > = C & ((...args: Parameters<C['withoutNew']>) => ReturnType<C['withoutNew']>);
 
@@ -11,7 +12,10 @@ export function CallableClass<C extends ConcreteClass & HasStaticWithoutNew<C>, 
     if (new.target) throw new TypeError('Cannot instantiate CallableClass with new');
     return new Proxy(classObject, {
         apply(target: C, _thisContext: unknown, args: any[]) {
-            return target.withoutNew?.apply(target, args);
+            // return target.withoutNew?.apply(target, args);
+            const withoutNew = target.withoutNew;
+            if (withoutNew === undefined) return undefined;
+            return Reflect.apply(withoutNew, target, args);
         },
     }) as unknown as CallableConstructor<C>;
 }
