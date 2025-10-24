@@ -111,6 +111,7 @@ export const Datetime_local = CallableClass(class Datetime_Internal {
 
     #LocalTime(timeValue?: number): number {
         timeValue = timeValue ?? this.#DateValue;
+        if (isNaN(timeValue)) return NaN;
         const {offsetNanoseconds} = getOffsetNanoseconds(this.#DateValue, this.#Timezone);
         const offsetMs = Math.trunc(offsetNanoseconds / (10 ** 6));
         return timeValue + offsetMs;

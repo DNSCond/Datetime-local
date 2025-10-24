@@ -111,6 +111,8 @@ export const Datetime_local = CallableClass(class Datetime_Internal {
     static parse = Date.parse;
     #LocalTime(timeValue) {
         timeValue = timeValue ?? this.#DateValue;
+        if (isNaN(timeValue))
+            return NaN;
         const { offsetNanoseconds } = getOffsetNanoseconds(this.#DateValue, this.#Timezone);
         const offsetMs = Math.trunc(offsetNanoseconds / (10 ** 6));
         return timeValue + offsetMs;
@@ -141,11 +143,28 @@ export const Datetime_local = CallableClass(class Datetime_Internal {
     setTimezone(TimezoneId) {
         return this.#Timezone = (new Temporal.ZonedDateTime(msToNS(this.#DateValue), TimezoneId)).timeZoneId;
     }
-    getComponents() {
+    getComponentsLocal() {
         return Object.freeze(this.#getComponents());
+    }
+    getComponentsUTC() {
+        return Object.freeze(this.#getComponentsUTC());
     }
     #getComponents() {
         const t = this.#LocalTime();
+        const [year, month, date, day, hours, minutes, seconds, milliseconds] = [
+            (Dateinternals.YearFromTime(t)),
+            (Dateinternals.MonthFromTime(t)),
+            (Dateinternals.DateFromTime(t)),
+            (Dateinternals.WeekDay(t)),
+            (Dateinternals.HourFromTime(t)),
+            (Dateinternals.MinFromTime(t)),
+            (Dateinternals.SecFromTime(t)),
+            (Dateinternals.msFromTime(t)),
+        ];
+        return { year, month, date, day, hours, minutes, seconds, milliseconds };
+    }
+    #getComponentsUTC() {
+        const t = this.#DateValue;
         const [year, month, date, day, hours, minutes, seconds, milliseconds] = [
             (Dateinternals.YearFromTime(t)),
             (Dateinternals.MonthFromTime(t)),
