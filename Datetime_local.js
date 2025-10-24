@@ -63,20 +63,20 @@ export const Datetime_local = CallableClass(class Datetime_Internal {
     toString() {
         if (Number.isNaN(this.#DateValue))
             return "Invalid Date";
-        const tv = this.#DateValue, t = this.#LocalTime(tv);
-        return Dateinternals.DateString(t) + space + Dateinternals.TimeString(t) + this.#_TimeZoneString();
+        const t = this.#LocalTime();
+        return Dateinternals.DateString(t) + space + Dateinternals.TimeString(t) + this.#TimeZoneString();
     }
     toDateString() {
         if (Number.isNaN(this.#DateValue))
             return "Invalid Date";
-        const t = this.#LocalTime(this.#DateValue);
+        const t = this.#LocalTime();
         return Dateinternals.DateString(t);
     }
     toTimeString() {
         if (Number.isNaN(this.#DateValue))
             return "Invalid Date";
-        const tv = this.#DateValue, t = this.#LocalTime(tv);
-        return Dateinternals.TimeString(t) + this.#_TimeZoneString();
+        const t = this.#LocalTime();
+        return Dateinternals.TimeString(t) + this.#TimeZoneString();
     }
     toISOString() {
         const t = this.#DateValue;
@@ -110,11 +110,28 @@ export const Datetime_local = CallableClass(class Datetime_Internal {
     // i have no want create a parser
     static parse = Date.parse;
     #LocalTime(timeValue) {
+        timeValue = timeValue ?? this.#DateValue;
         const { offsetNanoseconds } = getOffsetNanoseconds(this.#DateValue, this.#Timezone);
         const offsetMs = Math.trunc(offsetNanoseconds / (10 ** 6));
         return timeValue + offsetMs;
     }
-    #_TimeZoneString() {
+    #UTC(t) {
+        const timeZone = this.#Timezone;
+        const [year, month, day, hour, minute, second, millisecond] = [
+            (Dateinternals.YearFromTime(t)),
+            (Dateinternals.MonthFromTime(t)) + 1,
+            (Dateinternals.DateFromTime(t)),
+            (Dateinternals.HourFromTime(t)),
+            (Dateinternals.MinFromTime(t)),
+            (Dateinternals.SecFromTime(t)),
+            (Dateinternals.msFromTime(t)),
+        ], zdt = Temporal.ZonedDateTime.from({
+            timeZone, year, month, day, hour,
+            minute, second, millisecond,
+        }, { disambiguation: "compatible", overflow: "reject" });
+        return zdt.epochMilliseconds;
+    }
+    #TimeZoneString() {
         const { offsetNanoseconds, timezoneId } = getOffsetNanoseconds(this.#DateValue, this.#Timezone);
         const tzName = `${space}\x28${timezoneId}\x29`, offset = Math.trunc(offsetNanoseconds / (10 ** 6)), offsetSign = offset < 0 ? '-' : '+', absOffset = Math.abs(offset);
         const offsetMin = ToZeroPaddedDecimalString(Dateinternals.MinFromTime(absOffset), 2);
@@ -123,6 +140,36 @@ export const Datetime_local = CallableClass(class Datetime_Internal {
     }
     setTimezone(TimezoneId) {
         return this.#Timezone = (new Temporal.ZonedDateTime(msToNS(this.#DateValue), TimezoneId)).timeZoneId;
+    }
+    getComponents() {
+        return Object.freeze(this.#getComponents());
+    }
+    #getComponents() {
+        const t = this.#LocalTime();
+        const [year, month, date, day, hours, minutes, seconds, milliseconds] = [
+            (Dateinternals.YearFromTime(t)),
+            (Dateinternals.MonthFromTime(t)),
+            (Dateinternals.DateFromTime(t)),
+            (Dateinternals.WeekDay(t)),
+            (Dateinternals.HourFromTime(t)),
+            (Dateinternals.MinFromTime(t)),
+            (Dateinternals.SecFromTime(t)),
+            (Dateinternals.msFromTime(t)),
+        ];
+        return { year, month, date, day, hours, minutes, seconds, milliseconds };
+    }
+    setHours(hours, minutes, seconds, milliseconds) {
+        const self = this.#getComponents();
+        hours = +hours;
+        const time = this.#DateValue;
+        if (Number.isNaN(time))
+            return NaN;
+        const t = this.#LocalTime(time);
+        const min = arguments.length > 1 ? +minutes : self.minutes;
+        const sec = arguments.length > 2 ? +seconds : self.seconds;
+        const ms = arguments.length > 3 ? +milliseconds : self.milliseconds;
+        const date = Dateinternals.MakeDate(Dateinternals.Day(t), Dateinternals.MakeTime(hours, min, sec, ms));
+        return this.#DateValue = this.#UTC(TimeClip(date));
     }
     getTimezoneId() {
         return this.#Timezone;
