@@ -1,10 +1,10 @@
 import {Temporal} from "temporal-polyfill";
-import {Datetime_global} from "./Datetime_global.js";
+import {constructorInput, Datetime_global, validateTimezone} from "./Datetime_global.js";
 // import {Timer} from "./EventTimer.js";
 
 // TimeElement, DT_HTML_Formatter, ClockTime, and RelativeTime
 
-function setDatetime(datetime: unknown, element: HTMLElement, setAttribute: boolean = true) {
+export function setDatetime(datetime: unknown, element: HTMLElement, setAttribute: boolean = true): string | null {
     let attribute;
     if (datetime === null) {
         attribute = null;
@@ -35,11 +35,17 @@ function setDatetime(datetime: unknown, element: HTMLElement, setAttribute: bool
  * for inheritance only
  */
 export abstract class TimeElement extends HTMLElement {
+    constructor(timeValue?: constructorInput, timezone?: string) {
+        super();
+        if (timeValue !== undefined) this.dateTime = timeValue;
+        if (timezone !== undefined) this.timezone = timezone;
+    }
+
     /**
      * sets the `datetime` and possibly `timezone` attribute to the new timestamp of the param.
      * @param newValue a Date, Temporal.ZonedDateTime, Datetime_global, string, or number.
      */
-    set dateTime(newValue: unknown) {
+    set dateTime(newValue: constructorInput) {
         setDatetime(newValue, this);
     }
 
@@ -55,7 +61,7 @@ export abstract class TimeElement extends HTMLElement {
     /**
      * sets the `timezone` attribute to the new timezone of the param.
      */
-    set timezone(newValue: unknown) {
+    set timezone(newValue: string | null) {
         if (newValue === null) {
             this.removeAttribute('timezone');
         } else if (newValue === undefined) {
@@ -64,7 +70,7 @@ export abstract class TimeElement extends HTMLElement {
             this.setAttribute('timezone', Datetime_global.hostLocalTimezone());
         } else {
             // if the timezone is invalid an error is thrown, do not catch it, It's for the one doing the assignment.
-            (new Datetime_global(Date.now(), newValue as string));
+            validateTimezone(newValue as string);
             this.setAttribute('timezone', newValue as string);
         }
     }
@@ -98,7 +104,13 @@ export abstract class TimeElement extends HTMLElement {
     get zonedDateTime(): Temporal.ZonedDateTime | null {
         return this.datetime_global?.toTemporalZonedDateTime() ?? null;
     }
+}
 
+
+/**
+ * for inheritance only
+ */
+export abstract class TimeElementFormatter extends TimeElement {
     _requestDTFormat(
         onGranted: (datetime_global: Datetime_global) => void,
         putContent: (textContent: string) => void) {
@@ -129,7 +141,7 @@ export abstract class TimeElement extends HTMLElement {
  * Example usage:
  *   <clock-time datetime="2025-06-12T12:00:00Z" format="Y-m-d H:i" timezone="UTC"></clock-time>
  */
-export class ClockTime extends TimeElement {
+export class ClockTime extends TimeElementFormatter {
     /**
      * Returns the list of attributes to observe for changes.
      * @returns {string[]}
@@ -198,7 +210,7 @@ export class ClockTime extends TimeElement {
  * Example usage:
  *   <relative-time datetime="2025-06-12T12:00:00Z"></relative-time>
  */
-export class RelativeTime extends TimeElement {
+export class RelativeTime extends TimeElementFormatter {
     /**
      * @private
      * @type {null|number}
@@ -231,8 +243,8 @@ export class RelativeTime extends TimeElement {
         this.updateTime();
         this.scheduleNextUpdate();
         this.append(this.getTimeElement());
-        this.setAttribute('role', 'time');
-        this.setAttribute('aria-live', 'polite');
+        // this.setAttribute('role', 'time');
+        // this.setAttribute('aria-live', 'polite');
     }
 
     /**
@@ -253,7 +265,7 @@ export class RelativeTime extends TimeElement {
         this.innerHTML = '';
         const html =
             this.innerTimeElement = document.createElement('time');
-        if (date) this.innerTimeElement.dateTime = date.toISOString();
+        if (date) html.dateTime = date.toISOString();
         this.append(html);
         return html;
     }
