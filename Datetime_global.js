@@ -2,7 +2,6 @@ import { Temporal } from 'temporal-polyfill';
 import { ZDTDuration } from "./ZDTDuration.js";
 /**
  * this class `Datetime_global` should behave exactly like `Date` if a name matches that on `Date`.
- * except `toJSON`. until now. that was the design goal all along. to have Date with `Temporal`'s precision
  */
 // npm: https://www.npmjs.com/package/datetime_global
 // github: https://github.com/DNSCond/Datetime-local
@@ -382,7 +381,7 @@ Datetime_global.prototype.setTime = function (timestamp) {
 Datetime_global.prototype.toString = function () {
     const time = this.validate();
     if (time === null)
-        return "Invalid";
+        return "Invalid Date";
     const pad = (n, z = 2) => padNumber(n, z).replace(/^\+/, ''), fullYear = pad(time.withCalendar('iso8601').year, 4);
     const offset = Datetime_global.getUTCOffset(this.getTimezoneOffset()), string = `${this.getDayName()} ${this.getMonthName()} ${pad(this.getDate())}`, timeStr = `${pad(this.getHours())}:${pad(this.getMinutes())}:${pad(this.getSeconds())}`;
     return `${string} ${fullYear} ${timeStr} ${offset} (${this.timezoneId})`;
@@ -1822,3 +1821,14 @@ function toDateValue(value) {
 function NaNInArray(array) {
     return Array.from(array).some(n => Number.isNaN(n));
 }
+export function validateTimezone(timezoneId) {
+    try {
+        new Temporal.ZonedDateTime(0n, timezoneId);
+    }
+    catch (err) {
+        const error = err;
+        return { valid: false, error };
+    }
+    return { valid: true, error: null };
+}
+//# sourceMappingURL=Datetime_global.js.map

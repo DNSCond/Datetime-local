@@ -520,3 +520,4 @@ Object.defineProperties(ClockDate.prototype, {
         }, enumerable, configurable,
     },
 });
+//# sourceMappingURL=ClockDate.js.map

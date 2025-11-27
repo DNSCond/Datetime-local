@@ -11,3 +11,4 @@ export function CallableClass(classObject) {
         },
     });
 }
+//# sourceMappingURL=proxy.js.map

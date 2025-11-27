@@ -85,3 +85,4 @@ ZDTDuration.mktime = function (hours = 0, minutes = 0, seconds = 0, months = 0, 
 ZDTDuration.prototype.toString = function () {
     return this.toHumanString();
 };
+//# sourceMappingURL=ZDTDuration.js.map
