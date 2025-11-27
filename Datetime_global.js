@@ -1821,12 +1821,14 @@ function toDateValue(value) {
 function NaNInArray(array) {
     return Array.from(array).some(n => Number.isNaN(n));
 }
-export function validateTimezone(timezoneId) {
+export function validateTimezone(timezoneId, rethrowIfInvalid = false) {
     try {
         new Temporal.ZonedDateTime(0n, timezoneId);
     }
     catch (err) {
         const error = err;
+        if (rethrowIfInvalid)
+            throw error;
         return { valid: false, error };
     }
     return { valid: true, error: null };

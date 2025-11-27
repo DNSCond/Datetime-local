@@ -1,6 +1,6 @@
 import { Temporal } from "temporal-polyfill";
 import { constructorInput, Datetime_global } from "./Datetime_global.js";
-export declare function setDatetime(datetime: unknown, element: HTMLElement, setAttribute?: boolean): string | null;
+export declare function setDatetime(datetime: unknown, element?: HTMLElement, setAttribute?: boolean): string | null;
 /**
  * for inheritance only
  */
@@ -36,6 +36,11 @@ export declare abstract class TimeElement extends HTMLElement {
  * for inheritance only
  */
 export declare abstract class TimeElementFormatter extends TimeElement {
+    /**
+     * for internal use only. call when updating textContent
+     * @param onGranted called when preventDefault is not called by any 'format-datetime' handler.
+     * @param putContent a function that a user can use to put content inside the element.
+     */
     _requestDTFormat(onGranted: (datetime_global: Datetime_global) => void, putContent: (textContent: string) => void): void;
 }
 /**
@@ -100,7 +105,7 @@ export declare class RelativeTime extends TimeElementFormatter {
     /**
      * Constructs a RelativeTime element, sets the ARIA role, and initializes the timer.
      */
-    constructor();
+    constructor(timeValue?: constructorInput, timezone?: string);
     /**
      * Called when the element is inserted into the DOM.
      * Triggers an initial update and starts a timer to refresh the relative time every second.

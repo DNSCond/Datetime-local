@@ -2920,7 +2920,7 @@ function NaNInArray(array: any[]): boolean {
     return Array.from(array).some(n => Number.isNaN(n));
 }
 
-export function validateTimezone(timezoneId: string): { valid: true, error: null } | {
+export function validateTimezone(timezoneId: string, rethrowIfInvalid = false): { valid: true, error: null } | {
     valid: false,
     error: RangeError | TypeError
 } {
@@ -2928,6 +2928,7 @@ export function validateTimezone(timezoneId: string): { valid: true, error: null
         new Temporal.ZonedDateTime(0n, timezoneId);
     } catch (err) {
         const error = err as RangeError | TypeError;
+        if (rethrowIfInvalid) throw error;
         return {valid: false, error};
     }
     return {valid: true, error: null};

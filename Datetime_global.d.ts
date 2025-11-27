@@ -1012,7 +1012,7 @@ export declare function overflowDatetime_global(zonedDateTime: {
     time: Temporal.ZonedDateTime;
 } | Datetime_global, overflow_overwrite: overflow_overwrite): Temporal.ZonedDateTime;
 export declare function padNumber(number: number | bigint, zeros?: number): string;
-export declare function validateTimezone(timezoneId: string): {
+export declare function validateTimezone(timezoneId: string, rethrowIfInvalid?: boolean): {
     valid: true;
     error: null;
 } | {

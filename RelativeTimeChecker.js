@@ -7,12 +7,12 @@ export function setDatetime(datetime, element, setAttribute = true) {
     if (datetime === null) {
         attribute = null;
         if (setAttribute)
-            element.removeAttribute('datetime');
+            element?.removeAttribute('datetime');
     }
     else if (datetime instanceof Temporal.ZonedDateTime) {
         attribute = (new Date(datetime.epochMilliseconds)).toISOString();
         if (setAttribute)
-            element.setAttribute('timezone', datetime.timeZoneId);
+            element?.setAttribute('timezone', datetime.timeZoneId);
     }
     else if (datetime instanceof Datetime_global) {
         attribute = datetime.toISOString();
@@ -24,17 +24,16 @@ export function setDatetime(datetime, element, setAttribute = true) {
         attribute = new Date(datetime.epochMilliseconds).toISOString();
     }
     else if (typeof datetime === 'string' || typeof datetime === 'number') {
-        console.warn('please do not assign dateTime with a number or string');
         // toISOString throws on invalid dates.
         attribute = (new Date(datetime)).toISOString();
     }
     else {
-        throw new TypeError('dateTime must be set using a Date, Temporal.ZonedDateTime, Datetime_global, string, or number');
+        throw new TypeError('dateTime must be set using a Date, Temporal.ZonedDateTime, Datetime_global, string, number, or null');
     }
     if (attribute === null)
         return null;
     if (setAttribute)
-        element.setAttribute('datetime', attribute);
+        element?.setAttribute('datetime', attribute);
     return attribute;
 }
 /**
@@ -79,7 +78,7 @@ export class TimeElement extends HTMLElement {
         }
         else {
             // if the timezone is invalid an error is thrown, do not catch it, It's for the one doing the assignment.
-            validateTimezone(newValue);
+            validateTimezone(newValue, true);
             this.setAttribute('timezone', newValue);
         }
     }
@@ -118,14 +117,18 @@ export class TimeElement extends HTMLElement {
  * for inheritance only
  */
 export class TimeElementFormatter extends TimeElement {
+    /**
+     * for internal use only. call when updating textContent
+     * @param onGranted called when preventDefault is not called by any 'format-datetime' handler.
+     * @param putContent a function that a user can use to put content inside the element.
+     */
     _requestDTFormat(onGranted, putContent) {
         const { datetime_global } = this;
         if (datetime_global && !isNaN(datetime_global)) {
             const detail = { datetime_global, putContent };
             const event = new CustomEvent('format-datetime', {
                 bubbles: true, cancelable: true, composed: false, detail,
-            });
-            const continueDefault = this.dispatchEvent(event);
+            }), continueDefault = this.dispatchEvent(event);
             if (continueDefault) {
                 onGranted(datetime_global);
             }
@@ -225,8 +228,8 @@ export class RelativeTime extends TimeElementFormatter {
     /**
      * Constructs a RelativeTime element, sets the ARIA role, and initializes the timer.
      */
-    constructor() {
-        super();
+    constructor(timeValue, timezone) {
+        super(timeValue, timezone);
         this._timer = null;
     }
     /**
@@ -237,7 +240,7 @@ export class RelativeTime extends TimeElementFormatter {
     connectedCallback() {
         this.updateTime();
         this.scheduleNextUpdate();
-        this.append(this.getTimeElement());
+        this.getTimeElement();
         // this.setAttribute('role', 'time');
         // this.setAttribute('aria-live', 'polite');
     }
