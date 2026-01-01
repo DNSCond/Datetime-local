@@ -1,25 +1,27 @@
 {
-    "name": "datetime_global",
-    "version": "0.8.2",
-    "description": "my Datetime untility, it mixes the Advanced capabilities of Temporal polyfill with the simplicity of Date",
-    "keywords": [
-        "date",
-        "datetime",
-        "Temporal",
-        "Date",
-        "time",
-        "format",
-        "Datetime_global"
-    ],
-    "author": "binary-ant",
-    "license": "MIT",
-    "type": "module",
-    "scripts": {
-        "test": "node tests.js"
-    },
-    "dependencies": {
-        "anthelpers": "^0.1.3",
-        "temporal-polyfill": "^0.3.0",
-        "typescript": "^5.9.3"
-    }
+  "name": "datetime_global",
+  "version": "0.8.3",
+  "description": "my Datetime utility, it mixes the Advanced capabilities of Temporal polyfill with the simplicity of Date",
+  "keywords": [
+    "date",
+    "datetime",
+    "Temporal",
+    "Date",
+    "time",
+    "format",
+    "Datetime_global"
+  ],
+  "author": "binary-ant",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "test": "node tests.js"
+  },
+  "main": "./dist/Datetime_global.js",
+  "types": "./dist/Datetime_global.d.ts",
+  "dependencies": {
+    "anthelpers": "^0.1.3",
+    "temporal-polyfill": "^0.3.0",
+    "typescript": "^5.9.3"
+  }
 }
