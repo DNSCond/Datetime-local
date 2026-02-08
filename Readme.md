@@ -279,7 +279,7 @@ thanks to generative ai to help with the documentation
 ## aftercode
 
 // npm: https://www.npmjs.com/package/datetime_global
-// github: https://github.com/Qin2007/Datetime-local
+// github: https://github.com/DNSCond/Datetime-local
 // ListOfTimezones: [Moderator Statistics | Reddit for Developers](https://developers.reddit.com/apps/modlogstats)
 
 consider inserting this into your site, and convert your site to local time

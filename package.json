@@ -1,6 +1,6 @@
 {
   "name": "datetime_global",
-  "version": "0.8.3",
+  "version": "0.8.5",
   "description": "my Datetime utility, it mixes the Advanced capabilities of Temporal polyfill with the simplicity of Date",
   "keywords": [
     "date",
@@ -22,5 +22,8 @@
   "dependencies": {
     "temporal-polyfill": "^0.3.0",
     "typescript": "^5.9.3"
-  }
+  },
+  "files": [
+    "dist"
+  ]
 }
