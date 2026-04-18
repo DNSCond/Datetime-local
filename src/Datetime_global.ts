@@ -1,5 +1,6 @@
 import {Temporal} from 'temporal-polyfill';
 import {ZDTDuration} from "./ZDTDuration.js";
+import {Datetime_local} from "./Datetime_local.js";
 /**
  * this class `Datetime_global` should behave exactly like `Date` if a name matches that on `Date`.
  */
@@ -2834,7 +2835,7 @@ export function overflowDatetime_global(
 ): Temporal.ZonedDateTime {
     // Extract the ZonedDateTime object
     const self_time = Datetime_global.prototype.validate.call(zonedDateTime as Datetime_global);
-    if (self_time === null) throw new TypeError('Datetime_global.prototype.validate.call');
+    if (self_time === null) throw TypeError('Datetime_global.prototype.validate.call');
 
     // Prepare the fields with defaults from self_time
     const try_time: overflow_overwrite = {

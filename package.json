@@ -20,6 +20,7 @@
   "main": "./dist/Datetime_global.js",
   "types": "./dist/Datetime_global.d.ts",
   "dependencies": {
+    "anthelpers": "^0.2.1",
     "temporal-polyfill": "^0.3.0",
     "typescript": "^5.9.3"
   },
