@@ -2,7 +2,7 @@ import {Temporal} from 'temporal-polyfill';
 import {CallableClass} from "./proxy.js";
 import {EXMAScript} from "anthelpers";
 
-export const Datetime_local = CallableClass(class Datetime_Internal {
+class Datetime_Internal {
     #DateValue: number;
     #Timezone: string = Temporal.Now.timeZoneId();
 
@@ -245,9 +245,11 @@ export const Datetime_local = CallableClass(class Datetime_Internal {
         return this.getTimezoneId();
     }
 
-});
+}
+
+export const Datetime_local = CallableClass(Datetime_Internal);
 const space = "\x20";
-const Dateinternals = {
+export const Dateinternals = {
     HoursPerDay: 24,
     MinutesPerHour: 60,
     SecondsPerMinute: 60,

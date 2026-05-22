@@ -1,6 +1,6 @@
 {
   "name": "datetime_global",
-  "version": "0.8.5",
+  "version": "0.9.0",
   "description": "my Datetime utility, it mixes the Advanced capabilities of Temporal polyfill with the simplicity of Date",
   "keywords": [
     "date",
@@ -15,16 +15,20 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "test": "node tests.js"
+    "test": "tsc && vitest run"
   },
   "main": "./dist/Datetime_global.js",
   "types": "./dist/Datetime_global.d.ts",
   "dependencies": {
     "anthelpers": "^0.2.1",
-    "temporal-polyfill": "^0.3.0",
-    "typescript": "^5.9.3"
+    "temporal-polyfill": "^0.3.0"
   },
   "files": [
     "dist"
-  ]
+  ],
+  "devDependencies": {
+    "jsdom": "^29.1.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.7"
+  }
 }
