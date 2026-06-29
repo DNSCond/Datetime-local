@@ -10,7 +10,7 @@ export class TimeElementBuiltin extends HTMLTimeElement {
      * sets the `datetime` and possibly `timezone` attribute to the new timestamp of the param.
      * @param newValue a Date, Temporal.ZonedDateTime, Datetime_global, string, or number.
      */
-    set dateTimeExtended(newValue: constructorInput) {
+    set date(newValue: constructorInput) {
         setDatetime(newValue, this);
     }
 
@@ -21,7 +21,7 @@ export class TimeElementBuiltin extends HTMLTimeElement {
     /**
      * a Date representing the `datetime` attribute or null.
      */
-    get dateTimeExtended(): Date | null {
+    get date(): Date | null {
         const date = this.getAttribute('datetime');
         if (date === null) return null;
         return new Date(date);
@@ -147,7 +147,7 @@ export class ClockTimeBuiltin extends TimeElementFormatter {
     updateTime(): void {
         const format: string = this.getAttribute('data-format') ?? Datetime_global.FORMAT_DATETIME_GLOBALV3;
         this.getTimeHTMLElement().textContent = this.requestCustomFormat(
-            this.dateTimeExtended, this.timezone ?? 'UTC',
+            this.date, this.timezone ?? 'UTC',
             this.datetime_global?.format(format) ?? 'Invalid Date',
         );
     }

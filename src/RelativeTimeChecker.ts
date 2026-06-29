@@ -22,7 +22,7 @@ export function setDatetime(datetime: unknown, element?: HTMLElement, setAttribu
         // toISOString throws on invalid dates.
         attribute = (new Date(datetime)).toISOString();
     } else {
-        throw new TypeError('dateTime must be set using a Date, Temporal.ZonedDateTime, Datetime_global, string, number, or null');
+        throw TypeError('dateTime must be set using a Date, Temporal.ZonedDateTime, Datetime_global, string, number, or null');
     }
     if (attribute === null) return null;
     if (setAttribute) element?.setAttribute('datetime', attribute);
@@ -37,7 +37,7 @@ export abstract class TimeElement extends HTMLElement {
 
     constructor(timeValue?: constructorInput, timezone?: string) {
         super();
-        if (timeValue !== undefined) this.dateTime = timeValue;
+        if (timeValue !== undefined) this.date = timeValue;
         if (timezone !== undefined) this.timezone = timezone;
         this.#htmlTimeElement = this.ownerDocument.createElement('time');
     }
@@ -54,6 +54,23 @@ export abstract class TimeElement extends HTMLElement {
      * sets the `datetime` and possibly `timezone` attribute to the new timestamp of the param.
      * @param newValue a Date, Temporal.ZonedDateTime, Datetime_global, string, or number.
      */
+    set date(newValue: constructorInput) {
+        setDatetime(newValue, this);
+    }
+
+    /**
+     * a Date representing the `datetime` attribute or null.
+     */
+    get date(): Date | null {
+        const date = this.getAttribute('datetime');
+        if (date === null) return null;
+        return new Date(date);
+    }
+
+    /**
+     * sets the `datetime` and possibly `timezone` attribute to the new timestamp of the param.
+     * @param newValue a Date, Temporal.ZonedDateTime, Datetime_global, string, or number.
+     */
     set dateTime(newValue: constructorInput) {
         setDatetime(newValue, this);
     }
@@ -61,10 +78,8 @@ export abstract class TimeElement extends HTMLElement {
     /**
      * a Date representing the `datetime` attribute or null.
      */
-    get dateTime(): Date | null {
-        const date = this.getAttribute('datetime');
-        if (date === null) return null;
-        return new Date(date);
+    get dateTime(): string | null {
+        return this.getAttribute('datetime');
     }
 
     /**
@@ -74,7 +89,7 @@ export abstract class TimeElement extends HTMLElement {
         if (newValue === null) {
             this.removeAttribute('timezone');
         } else if (newValue === undefined) {
-            throw new TypeError('undefined is not a timezone');
+            throw TypeError('undefined is not a timezone');
         } else if (newValue === 'local') {
             this.setAttribute('timezone', Datetime_global.hostLocalTimezone());
         } else {
@@ -188,7 +203,7 @@ export class ClockTime extends TimeElementFormatter {
     updateTime(): void {
         const format: string = this.getAttribute('format') ?? Datetime_global.FORMAT_DATETIME_GLOBALV3;
         this.getTimeHTMLElement().textContent = this.requestCustomFormat(
-            this.dateTime, this.timezone ?? 'UTC', this.datetime_global?.format(format) ?? 'Invalid Date',
+            this.date, this.timezone ?? 'UTC', this.datetime_global?.format(format) ?? 'Invalid Date',
         );
     }
 }
@@ -276,9 +291,9 @@ export class RelativeTime extends TimeElementFormatter {
     }
 
     updateTime(): void {
-        const {dateTime} = this;
+        const {date} = this;
         let content = 'Invalid Date';
-        if (dateTime instanceof Date && !isNaN(dateTime as unknown as number))
+        if (date instanceof Date && !isNaN(date as unknown as number))
             switch (this.getAttribute('precision')) {
                 case 'modern':
                     const duration = this.getDuration();
@@ -292,17 +307,17 @@ export class RelativeTime extends TimeElementFormatter {
                     }
                     break;
                 default:
-                    content = this.getRelativeTime(dateTime);
+                    content = this.getRelativeTime(date);
             }
         this.getTimeHTMLElement().textContent = this.requestCustomFormat(
-            this.dateTime, this.timezone ?? 'UTC', content,
+            this.date, this.timezone ?? 'UTC', content,
         );
     }
 
     private scheduleNextUpdate(): void {
         this.clearTimer();
 
-        const date = this.dateTime;
+        const date = this.date;
         if (!date) return; // No valid datetime, no updates needed
 
         const absDiffInSeconds = Math.abs((Date.now() - date.getTime()) / 1000);
@@ -435,7 +450,7 @@ class DurationTime extends HTMLElement {
         } else if (value instanceof Temporal.Duration) {
             duration = value;
         } else {
-            throw new TypeError('duration must be set using a Temporal.Duration or it in string form');
+            throw TypeError('duration must be set using a Temporal.Duration or it in string form');
         }
         this.setAttribute('duration', duration.toString());
     }
