@@ -246,5 +246,6 @@ export class RelativeTimeBuiltin extends TimeElementFormatter {
     }
 }
 
-customElements.define('clock-time-builtin', ClockTimeBuiltin);
-customElements.define('relative-time-builtin', RelativeTimeBuiltin);
+const extendsTime = {extends: 'time'};
+customElements.define('clock-time-builtin', ClockTimeBuiltin, extendsTime);
+customElements.define('relative-time-builtin', RelativeTimeBuiltin, extendsTime);
